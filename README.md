@@ -52,6 +52,11 @@ Control your whole day by talking — no menus, no tab-hopping.
 - **AI mood journaling** — *"I feel stressed about the deadline"* logs the mood, writes a short reflective note, and replies with a supportive line.
 - **Notes → to-dos** — *"pull to-dos from my last note"* extracts the action items and creates them as tasks.
 
+## Downloads
+- If you have a Mac or a macOS-powered device AND have Xcode downloaded, you can host directly from the [source code](https://github.com/shankar-sachin/halo/archive/refs/tags/v0.2.0.tar.gz)
+- If you don't have macOS, don't have Xcode, or don't want to host locally, download the raw iOS .app file to test on your iPhone through the ZIP file at [halo-lifestyle.zip](https://github.com/shankar-sachin/halo/releases/download/v0.2.0/Halo-Lifestyle.zip), or you can download the build files [here](https://github.com/shankar-sachin/halo/releases/download/v0.2.0/Build.zip)
+- If you want to go the long way, follow the instructions beneath
+
 ## Requirements
 
 - **Xcode 26** or newer
