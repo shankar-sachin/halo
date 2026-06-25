@@ -2,7 +2,7 @@
 
 A voice-powered lifestyle app for iOS 26 that bundles eight everyday trackers behind one conversational assistant. Speak a command — *"Halo, add a to-do"*, *"log a coffee"*, *"I drank a glass of water"* — and Halo turns it into the right entry, on device.
 
-> Display name: **Halo Lifestyle** · Spoken name: **Halo** · Bundle ID: `com.sachi.halo-lifestyle`
+> Display name: **Halo Lifestyle** · Spoken name: **Halo** · Bundle ID: `com.sachi.halo`
 
 ## Features
 
