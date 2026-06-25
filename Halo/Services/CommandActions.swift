@@ -123,18 +123,29 @@ struct CommandActions {
 
     func logWorkout(_ raw: String) async -> String {
         let parsed = VoiceParsing.workout(from: raw)
-        context.insert(Workout(type: parsed.type, durationMinutes: parsed.minutes))
+        // AI estimate of calories burned, falling back to a deterministic MET-based estimate.
+        let calories = await HaloIntelligence.estimateWorkoutKcal(type: parsed.type, minutes: parsed.minutes)
+            ?? WorkoutCalories.estimate(type: parsed.type, minutes: parsed.minutes)
+        context.insert(Workout(type: parsed.type, durationMinutes: parsed.minutes, calories: calories))
         try? context.save()
-        return "Logged a \(parsed.minutes) minute \(parsed.type.lowercased())."
+        let burn = calories > 0 ? " — about \(calories) kcal burned" : ""
+        return "Logged a \(parsed.minutes) minute \(parsed.type.lowercased())\(burn)."
     }
 
     // MARK: - Mood
 
     func logMood(_ raw: String) async -> String {
+        // Prefer AI journaling (rating + reflective note + supportive reply); fall back to keywords.
+        if let reflection = await HaloIntelligence.reflectMood(raw) {
+            context.insert(MoodEntry(rating: reflection.rating, note: reflection.note))
+            try? context.save()
+            let reply = reflection.reply.isEmpty ? "" : " \(reflection.reply)"
+            return "Logged your mood as \(MoodEntry.label(for: reflection.rating)) \(MoodEntry.emoji(for: reflection.rating)).\(reply)"
+        }
         guard let rating = MoodEntry.rating(from: raw) else {
             return "Tell me how you feel — great, good, okay, low, or awful."
         }
-        context.insert(MoodEntry(rating: rating, note: ""))
+        context.insert(MoodEntry(rating: rating, note: raw.trimmingCharacters(in: .whitespacesAndNewlines)))
         try? context.save()
         return "Logged your mood as \(MoodEntry.label(for: rating)) \(MoodEntry.emoji(for: rating))."
     }
@@ -247,13 +258,100 @@ struct CommandActions {
         let open = openTodos()
         let todoLine = open.isEmpty ? "✅ No open to-dos" : "✅ \(open.count) open to-do\(open.count == 1 ? "" : "s")"
 
-        var lines = ["Here's your day:", calLine, waterLine, todoLine]
+        var lines = [calLine, waterLine, todoLine]
 
         let habits = (try? context.fetch(FetchDescriptor<Habit>())) ?? []
         if !habits.isEmpty {
             lines.append("🔁 \(habits.filter { $0.isCompleted() }.count)/\(habits.count) habits done")
         }
-        return lines.joined(separator: "\n")
+
+        // Let the on-device model phrase a warm recap from the exact figures; fall back to the list.
+        if let polished = await HaloIntelligence.polishBriefing(facts: lines.joined(separator: "\n")) {
+            return polished
+        }
+        return (["Here's your day:"] + lines).joined(separator: "\n")
+    }
+
+    // MARK: - Weekly insights
+
+    /// An AI (or templated) summary of the last 7 days across diet, water, and habits.
+    func weeklyInsights() async -> String {
+        let logger = MealLogger(context: context)
+        let week = logger.dailyTotals(days: 7)
+        let avg = week.isEmpty ? 0 : week.reduce(0) { $0 + $1.calories } / week.count
+        let loggedDays = week.filter { $0.calories > 0 }.count
+        let streak = logger.currentStreak()
+        let budget = SettingsDefault.budget
+
+        let habits = (try? context.fetch(FetchDescriptor<Habit>())) ?? []
+        let bestStreak = habits.map(\.streak).max() ?? 0
+
+        let facts = """
+        Daily calorie budget: \(budget) kcal.
+        Average calories/day this week: \(avg) kcal across \(loggedDays) logged days.
+        Current meal-logging streak: \(streak) days.
+        Habits tracked: \(habits.count); best habit streak: \(bestStreak) days.
+        """
+
+        if let insight = await HaloIntelligence.weeklyInsight(facts: facts) {
+            return insight
+        }
+        // Deterministic fallback.
+        let vsBudget = avg == 0 ? "no meals logged yet" :
+            (avg <= budget ? "averaging \(avg) kcal/day, under your \(budget) goal — nice work"
+                           : "averaging \(avg) kcal/day, over your \(budget) goal")
+        return "This week: \(vsBudget). \(streak)-day logging streak\(bestStreak > 0 ? ", best habit streak \(bestStreak) days" : "")."
+    }
+
+    // MARK: - Meal suggestions
+
+    /// Suggests meals that fit the remaining calorie budget (AI, with a static fallback).
+    func suggestMeal(_ raw: String) async -> String {
+        let consumed = MealLogger(context: context).consumedToday()
+        let remaining = max(SettingsDefault.budget - consumed, 0)
+
+        if let ideas = await HaloIntelligence.suggestMeals(remaining: remaining, context: raw) {
+            return ideas
+        }
+        // Deterministic fallback keyed by remaining budget.
+        if remaining <= 0 { return "You're at your budget for today — maybe a light option like a herbal tea or some veg sticks. 🥕" }
+        if remaining < 300 { return "About \(remaining) kcal left — a greek yogurt with berries (~150) or a boiled egg and fruit (~200) would fit." }
+        if remaining < 600 { return "About \(remaining) kcal left — a chicken salad (~400) or a veggie wrap (~450) would fit nicely." }
+        return "You have \(remaining) kcal left — room for a salmon bowl (~550), a burrito (~600), or pasta with veg (~650)."
+    }
+
+    // MARK: - Notes → to-dos
+
+    /// Turns a note into to-dos: extracts tasks (AI, with a split-based fallback) and creates them.
+    func extractTodosFromNote(_ raw: String) async -> String {
+        let target = Self.targetText(from: raw)
+        let notes = (try? context.fetch(FetchDescriptor<Note>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)]))) ?? []
+        guard !notes.isEmpty else { return "You don't have any notes to pull to-dos from." }
+
+        let note: Note
+        if !target.isEmpty, let index = TodoMatcher().bestMatchIndex(for: target, in: notes.map(\.title)) {
+            note = notes[index]
+        } else {
+            note = notes[0]
+        }
+
+        let tasks = await HaloIntelligence.extractTasks(from: note.body) ?? Self.splitTasks(note.body)
+        guard !tasks.isEmpty else { return "I couldn't find any tasks in that note." }
+
+        for task in tasks {
+            context.insert(TodoItem(title: task))
+        }
+        try? context.save()
+        return "Created \(tasks.count) to-do\(tasks.count == 1 ? "" : "s") from your note."
+    }
+
+    /// Deterministic fallback: split a note into candidate tasks on lines, commas, and "and".
+    static func splitTasks(_ body: String) -> [String] {
+        body
+            .split(whereSeparator: { $0 == "\n" || $0 == "," || $0 == ";" })
+            .flatMap { $0.lowercased().contains(" and ") ? $0.components(separatedBy: " and ") : [String($0)] }
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { $0.count > 2 }
     }
 
     // MARK: - Edit & delete

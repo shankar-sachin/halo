@@ -6,7 +6,7 @@ import Foundation
 struct VoiceCommandRouter {
     enum Action: String {
         case todo, note, meal, complete, water, workout, mood, habit, addHabit, pill
-        case query, briefing, delete, edit, unknown
+        case query, briefing, delete, edit, insights, suggest, extractTodos, unknown
 
         var systemImage: String {
             switch self {
@@ -23,6 +23,9 @@ struct VoiceCommandRouter {
             case .briefing: "sun.max"
             case .delete: "trash"
             case .edit: "pencil"
+            case .insights: "chart.line.uptrend.xyaxis"
+            case .suggest: "lightbulb"
+            case .extractTodos: "text.badge.checkmark"
             case .unknown: "questionmark.circle"
             }
         }
@@ -51,6 +54,9 @@ struct VoiceCommandRouter {
 
         // Intent verbs that read/modify existing data — checked before create-prefixes so
         // "delete the milk to-do" or "how much water today" aren't read as new entries.
+        if Self.isExtractTodos(lower) { return (.extractTodos, cleaned) }
+        if Self.isInsights(lower) { return (.insights, cleaned) }
+        if Self.isSuggest(lower) { return (.suggest, cleaned) }
         if Self.isBriefing(lower) { return (.briefing, cleaned) }
         if Self.editPrefixes.contains(where: { lower.hasPrefix($0) }) { return (.edit, cleaned) }
         if Self.deletePrefixes.contains(where: { lower.hasPrefix($0) }) { return (.delete, cleaned) }
@@ -86,6 +92,25 @@ struct VoiceCommandRouter {
     private static let deletePrefixes = ["delete", "remove", "cancel", "get rid of", "clear"]
     private static let editPrefixes = ["change", "rename", "reschedule", "edit", "update", "move", "set the"]
 
+    private static func isExtractTodos(_ lower: String) -> Bool {
+        let phrases = ["pull to-dos", "pull todos", "extract to-dos", "extract todos", "extract tasks",
+                       "turn my note into", "turn the note into", "make to-dos from", "make todos from",
+                       "tasks from my note", "to-dos from my note", "todos from my note"]
+        return phrases.contains { lower.contains($0) }
+    }
+
+    private static func isInsights(_ lower: String) -> Bool {
+        let phrases = ["how was my week", "this week", "my week", "weekly", "insights", "insight",
+                       "how am i trending", "trend", "my progress", "how have i been"]
+        return phrases.contains { lower.contains($0) }
+    }
+
+    private static func isSuggest(_ lower: String) -> Bool {
+        let phrases = ["what should i eat", "what can i eat", "what can i have", "suggest a meal",
+                       "meal idea", "meal suggestion", "what's for dinner", "what should i have"]
+        return phrases.contains { lower.contains($0) }
+    }
+
     private static func isBriefing(_ lower: String) -> Bool {
         let phrases = ["how's my day", "how is my day", "hows my day", "daily summary",
                        "summarize my day", "briefing", "brief me", "recap", "how am i doing",
@@ -107,29 +132,48 @@ struct VoiceCommandRouter {
         return hasWorkoutWord || (hasActivity && hasDuration) || (hasActivity && lower.hasPrefix("log"))
     }
 
-    /// Classifies then performs the command, returning a spoken-style confirmation.
+    /// Classifies then performs the command(s), returning a spoken-style confirmation.
     ///
-    /// Tries on-device AI understanding first (`HaloIntelligence`); falls back to the deterministic
-    /// rule-based `classify` when Apple Intelligence is unavailable or unsure.
+    /// Tries on-device AI understanding first (`HaloIntelligence.plan`, which can split one sentence
+    /// into several commands); falls back to the deterministic rule-based `classify` when Apple
+    /// Intelligence is unavailable or unsure.
     func handle(_ transcript: String) async -> (action: Action, message: String) {
-        let (action, payload) = await HaloIntelligence.classify(transcript) ?? classify(transcript)
+        let commands = await HaloIntelligence.plan(transcript) ?? [classify(transcript)]
+
+        guard commands.count > 1 else {
+            let (action, payload) = commands[0]
+            return (action, await perform(action, payload))
+        }
+
+        var messages: [String] = []
+        for (action, payload) in commands {
+            messages.append(await perform(action, payload))
+        }
+        return (commands[0].action, messages.joined(separator: "\n"))
+    }
+
+    /// Executes a single resolved action and returns its spoken-style confirmation.
+    func perform(_ action: Action, _ payload: String) async -> String {
         let actions = CommandActions()
         switch action {
-        case .todo: return (action, await actions.addTodo(payload))
-        case .note: return (action, await actions.addNote(payload))
-        case .meal: return (action, await actions.logMeal(payload))
-        case .complete: return (action, await actions.completeTodo(payload))
-        case .water: return (action, await actions.logWater(payload))
-        case .workout: return (action, await actions.logWorkout(payload))
-        case .mood: return (action, await actions.logMood(payload))
-        case .habit: return (action, await actions.completeHabit(payload))
-        case .addHabit: return (action, await actions.addHabit(payload))
-        case .pill: return (action, await actions.logPill(payload))
-        case .query: return (action, await actions.answer(payload))
-        case .briefing: return (action, await actions.dailyBriefing())
-        case .delete: return (action, await actions.deleteEntry(payload))
-        case .edit: return (action, await actions.editTodo(payload))
-        case .unknown: return (action, "I didn't catch that. Try “Halo, add a to-do…”.")
+        case .todo: return await actions.addTodo(payload)
+        case .note: return await actions.addNote(payload)
+        case .meal: return await actions.logMeal(payload)
+        case .complete: return await actions.completeTodo(payload)
+        case .water: return await actions.logWater(payload)
+        case .workout: return await actions.logWorkout(payload)
+        case .mood: return await actions.logMood(payload)
+        case .habit: return await actions.completeHabit(payload)
+        case .addHabit: return await actions.addHabit(payload)
+        case .pill: return await actions.logPill(payload)
+        case .query: return await actions.answer(payload)
+        case .briefing: return await actions.dailyBriefing()
+        case .delete: return await actions.deleteEntry(payload)
+        case .edit: return await actions.editTodo(payload)
+        case .insights: return await actions.weeklyInsights()
+        case .suggest: return await actions.suggestMeal(payload)
+        case .extractTodos: return await actions.extractTodosFromNote(payload)
+        case .unknown: return "I didn't catch that. Try “Halo, add a to-do…”."
         }
     }
 

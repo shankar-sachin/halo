@@ -149,6 +149,49 @@ struct VoiceCommandRouterTests {
         // "delete the milk to-do" must not be read as a new .todo.
         #expect(VoiceCommandRouter().classify("Halo delete the milk to-do").action != .todo)
     }
+
+    @Test func classifiesInsights() {
+        #expect(VoiceCommandRouter().classify("Halo how was my week").action == .insights)
+        #expect(VoiceCommandRouter().classify("Halo show me my weekly insights").action == .insights)
+    }
+
+    @Test func classifiesSuggest() {
+        #expect(VoiceCommandRouter().classify("Halo what should I eat").action == .suggest)
+        #expect(VoiceCommandRouter().classify("Halo suggest a meal").action == .suggest)
+    }
+
+    @Test func classifiesExtractTodos() {
+        #expect(VoiceCommandRouter().classify("Halo pull to-dos from my last note").action == .extractTodos)
+        #expect(VoiceCommandRouter().classify("Halo turn my note into to-dos").action == .extractTodos)
+    }
+}
+
+struct WorkoutCaloriesTests {
+    @Test func runEstimateIsSane() {
+        let kcal = WorkoutCalories.estimate(type: "Run", minutes: 30)
+        #expect(kcal > 250 && kcal < 450)
+    }
+
+    @Test func longerWorkoutBurnsMore() {
+        #expect(WorkoutCalories.estimate(type: "Cycling", minutes: 60) > WorkoutCalories.estimate(type: "Cycling", minutes: 20))
+    }
+
+    @Test func zeroMinutesIsZero() {
+        #expect(WorkoutCalories.estimate(type: "Run", minutes: 0) == 0)
+    }
+}
+
+@MainActor
+struct NoteTaskSplittingTests {
+    @Test func splitsCommaList() {
+        let tasks = CommandActions.splitTasks("buy milk, call plumber, book flights")
+        #expect(tasks.count == 3)
+    }
+
+    @Test func splitsLinesAndAnd() {
+        let tasks = CommandActions.splitTasks("wash the car\nmow the lawn and rake leaves")
+        #expect(tasks.count == 3)
+    }
 }
 
 struct VoiceParsingTests {

@@ -21,7 +21,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Halo reads your dietary energy to keep your daily totals in sync.</string>
+	<string>Halo reads your dietary energy and your workouts from Apple Health (including Apple Watch and Fitness) to keep your day in sync.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Halo logs the calories of meals you record so they appear in the Health app.</string>
 	<key>NSMicrophoneUsageDescription</key>

@@ -15,6 +15,7 @@ struct DietInsightsView: View {
 
     @State private var week: [DayTotal] = []
     @State private var streak = 0
+    @State private var insight: String?
 
     private var average: Int {
         guard !week.isEmpty else { return 0 }
@@ -40,6 +41,27 @@ struct DietInsightsView: View {
                         statCard(value: "\(average)", label: "avg kcal/day",
                                  icon: "chart.bar.fill", tint: Theme.dietTint)
                     }
+
+                    GlassCard(tint: Theme.dietTint) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("AI insight", systemImage: "sparkles")
+                                .font(.headline)
+                                .foregroundStyle(Theme.dietTint)
+                            if let insight {
+                                Text(insight)
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            } else {
+                                HStack(spacing: 8) {
+                                    ProgressView()
+                                    Text("Analyzing your week…")
+                                        .font(.callout)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
                 }
                 .padding()
             }
@@ -52,6 +74,9 @@ struct DietInsightsView: View {
                 }
             }
             .onAppear(perform: load)
+            .task {
+                insight = await CommandActions(context: context).weeklyInsights()
+            }
         }
         .tint(Theme.dietTint)
     }

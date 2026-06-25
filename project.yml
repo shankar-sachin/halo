@@ -49,7 +49,7 @@ targets:
           - audio
         CFBundleSpokenName: Halo
         NSHealthUpdateUsageDescription: "Halo logs the calories of meals you record so they appear in the Health app."
-        NSHealthShareUsageDescription: "Halo reads your dietary energy to keep your daily totals in sync."
+        NSHealthShareUsageDescription: "Halo reads your dietary energy and your workouts from Apple Health (including Apple Watch and Fitness) to keep your day in sync."
         NSSiriUsageDescription: "Use Siri to add to-dos, notes, and meals by voice."
         NSMicrophoneUsageDescription: "Halo listens while the app is open so you can speak commands like “Halo, add a to-do.”"
         NSSpeechRecognitionUsageDescription: "Halo turns your spoken commands into to-dos, notes, and meals on device."

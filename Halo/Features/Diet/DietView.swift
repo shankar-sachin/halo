@@ -10,6 +10,8 @@ struct DietView: View {
     @State private var showSettings = false
     @State private var showInsights = false
     @State private var editingEntry: DietEntry?
+    @State private var suggestion: String?
+    @State private var loadingSuggestion = false
 
     private var todayEntries: [DietEntry] {
         allEntries.filter { Calendar.current.isDateInToday($0.loggedAt) }
@@ -61,6 +63,18 @@ struct DietView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task {
+                            loadingSuggestion = true
+                            suggestion = await CommandActions(context: context).suggestMeal("")
+                            loadingSuggestion = false
+                        }
+                    } label: {
+                        Image(systemName: loadingSuggestion ? "lightbulb.circle" : "lightbulb")
+                    }
+                    .disabled(loadingSuggestion)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Button { showInsights = true } label: {
                         Image(systemName: "chart.bar.xaxis")
                     }
@@ -82,6 +96,11 @@ struct DietView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
+            }
+            .alert("Meal idea", isPresented: Binding(get: { suggestion != nil }, set: { if !$0 { suggestion = nil } })) {
+                Button("OK", role: .cancel) { suggestion = nil }
+            } message: {
+                Text(suggestion ?? "")
             }
         }
         .tint(Theme.dietTint)

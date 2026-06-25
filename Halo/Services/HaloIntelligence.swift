@@ -1,60 +1,202 @@
 import Foundation
 import FoundationModels
 
-/// On-device AI understanding for the in-app Halo (and Siri / background paths).
+/// On-device AI for Halo — intent understanding plus the generative helpers behind the AI features
+/// (mood journaling, weekly insights, meal suggestions, briefing polish, note→to-dos, workout burn).
 ///
-/// Uses Apple's `FoundationModels` to classify a free-form spoken sentence into one of Halo's
-/// actions and extract the relevant payload — so natural phrasing ("I crushed a 5k this morning",
-/// "what's left for dinner?") routes correctly. When Apple Intelligence is unavailable (e.g. the
-/// simulator), `classify` returns `nil` and the caller falls back to the rule-based
-/// `VoiceCommandRouter.classify`. Mirrors the on-device pattern in `CalorieEstimator`.
+/// All `FoundationModels` use is isolated here. Every call is gated on
+/// `SystemLanguageModel.default.availability` and wrapped in `try/catch`, returning `nil` so callers
+/// fall back to deterministic logic when Apple Intelligence is unavailable (e.g. the simulator).
 enum HaloIntelligence {
 
-    /// Structured intent the on-device model is asked to produce.
-    @Generable
-    struct Understanding {
-        @Guide(description: """
-        The single best action for the user's sentence. Must be exactly one of: \
-        todo (add a task/reminder), note (save a note), meal (log food eaten), \
-        complete (mark a task done), water (log water), workout (log exercise), \
-        mood (log how they feel), habit (mark a habit done), addHabit (create a new habit), \
-        pill (log medication/supplement), query (answer a question about their data), \
-        briefing (summarize their day), delete (remove an entry), edit (change an existing entry).
-        """)
-        var action: String
-
-        @Guide(description: """
-        The relevant content to act on, with wake words ("Halo", "hey Siri", "tell Halo") and \
-        filler removed. For a to-do keep the task and any time; for a meal keep the food; for a \
-        query keep what they're asking about. Echo the user's wording otherwise.
-        """)
-        var payload: String
+    private static var isAvailable: Bool {
+        if case .available = SystemLanguageModel.default.availability { return true }
+        return false
     }
 
-    /// Returns the AI-classified action + payload, or `nil` to fall back to rule-based routing.
-    @MainActor
-    static func classify(_ transcript: String) async -> (action: VoiceCommandRouter.Action, payload: String)? {
-        let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        guard case .available = SystemLanguageModel.default.availability else { return nil }
-
-        let instructions = """
-        You route commands for Halo, a voice-first lifestyle app with eight trackers: to-dos, notes, \
-        diet, habits, water, workouts, mood, and pills. Given one spoken sentence, pick the single \
-        best action and extract its payload. Prefer logging actions for statements about what the \
-        user did or ate, and the query action for questions. Respond only with the structured result.
-        """
-
+    /// Runs the model for a free-form text response, or `nil` on unavailability/failure.
+    private static func generateText(instructions: String, prompt: String) async -> String? {
+        guard isAvailable else { return nil }
         do {
             let session = LanguageModelSession(instructions: instructions)
-            let response = try await session.respond(to: trimmed, generating: Understanding.self)
-            guard let action = mapAction(response.content.action) else { return nil }
-            let payload = response.content.payload.trimmingCharacters(in: .whitespacesAndNewlines)
-            return (action, payload.isEmpty ? VoiceCommandRouter.stripWakeWord(trimmed) : payload)
+            let text = try await session.respond(to: prompt).content.trimmingCharacters(in: .whitespacesAndNewlines)
+            return text.isEmpty ? nil : text
         } catch {
             return nil
         }
     }
+
+    // MARK: - Multi-command understanding
+
+    @Generable
+    struct Command {
+        @Guide(description: """
+        One action. Must be exactly one of: todo (add a task/reminder), note (save a note), \
+        meal (log food eaten), complete (mark a task done), water (log water), workout (log exercise), \
+        mood (log how they feel), habit (mark a habit done), addHabit (create a new habit), \
+        pill (log medication/supplement), query (answer a question about their data), \
+        briefing (summarize today), insights (summarize the week/trends), suggest (suggest a meal), \
+        delete (remove an entry), edit (change an existing entry), extractTodos (turn a note into to-dos).
+        """)
+        var action: String
+
+        @Guide(description: """
+        The content for this action, with wake words ("Halo", "hey Siri", "tell Halo") and filler \
+        removed. Keep the task and any time for a to-do; the food for a meal; the question for a query.
+        """)
+        var payload: String
+    }
+
+    @Generable
+    struct Plan {
+        @Guide(description: """
+        One or more commands. Most sentences are a single command — only produce multiple when the \
+        user clearly asks for several distinct actions (e.g. "log water and finish the dishes").
+        """)
+        var commands: [Command]
+    }
+
+    /// Splits a spoken sentence into one or more `(action, payload)` commands, or `nil` to fall back
+    /// to the rule-based `VoiceCommandRouter.classify`.
+    @MainActor
+    static func plan(_ transcript: String) async -> [(action: VoiceCommandRouter.Action, payload: String)]? {
+        let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, isAvailable else { return nil }
+
+        let instructions = """
+        You route commands for Halo, a voice-first lifestyle app with eight trackers: to-dos, notes, \
+        diet, habits, water, workouts, mood, and pills. Break the user's sentence into the distinct \
+        actions it requests — usually just one. Prefer logging actions for statements about what the \
+        user did or ate, and query/insights for questions. Respond only with the structured result.
+        """
+        do {
+            let session = LanguageModelSession(instructions: instructions)
+            let plan = try await session.respond(to: trimmed, generating: Plan.self).content
+            let mapped: [(VoiceCommandRouter.Action, String)] = plan.commands.compactMap { command in
+                guard let action = mapAction(command.action) else { return nil }
+                let payload = command.payload.trimmingCharacters(in: .whitespacesAndNewlines)
+                return (action, payload.isEmpty ? VoiceCommandRouter.stripWakeWord(trimmed) : payload)
+            }
+            return mapped.isEmpty ? nil : mapped
+        } catch {
+            return nil
+        }
+    }
+
+    // MARK: - Mood journaling
+
+    @Generable
+    struct MoodReflection {
+        @Guide(description: "Mood rating from 1 (awful) to 5 (great).")
+        var rating: Int
+        @Guide(description: "A short reflective note (a few words) capturing what they shared.")
+        var note: String
+        @Guide(description: "One brief, warm, supportive sentence in response.")
+        var reply: String
+    }
+
+    @MainActor
+    static func reflectMood(_ text: String) async -> (rating: Int, note: String, reply: String)? {
+        guard isAvailable, !text.isEmpty else { return nil }
+        let instructions = """
+        You are a kind journaling assistant. From what the person says about their feelings, infer a \
+        mood rating (1 awful – 5 great), write a short reflective note, and a single warm, supportive \
+        sentence. Keep it gentle and non-clinical.
+        """
+        do {
+            let session = LanguageModelSession(instructions: instructions)
+            let result = try await session.respond(to: text, generating: MoodReflection.self).content
+            return (min(max(result.rating, 1), 5),
+                    result.note.trimmingCharacters(in: .whitespacesAndNewlines),
+                    result.reply.trimmingCharacters(in: .whitespacesAndNewlines))
+        } catch {
+            return nil
+        }
+    }
+
+    // MARK: - Notes → to-dos
+
+    @Generable
+    struct TaskList {
+        @Guide(description: "Actionable to-do items found in the note, each a short imperative phrase.")
+        var tasks: [String]
+    }
+
+    @MainActor
+    static func extractTasks(from note: String) async -> [String]? {
+        guard isAvailable, !note.isEmpty else { return nil }
+        let instructions = "Extract the actionable to-do items from the note. Ignore anything that isn't a task."
+        do {
+            let session = LanguageModelSession(instructions: instructions)
+            let list = try await session.respond(to: note, generating: TaskList.self).content
+            let tasks = list.tasks.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            return tasks.isEmpty ? nil : tasks
+        } catch {
+            return nil
+        }
+    }
+
+    // MARK: - Workout calorie burn
+
+    @Generable
+    struct WorkoutBurn {
+        @Guide(description: "Estimated calories burned (kcal) for the workout.")
+        var calories: Int
+    }
+
+    @MainActor
+    static func estimateWorkoutKcal(type: String, minutes: Int) async -> Int? {
+        guard isAvailable, minutes > 0 else { return nil }
+        let instructions = "Estimate calories burned for a workout. Use typical values for an average adult."
+        do {
+            let session = LanguageModelSession(instructions: instructions)
+            let burn = try await session.respond(
+                to: "Estimate calories burned for \(minutes) minutes of \(type).",
+                generating: WorkoutBurn.self
+            ).content
+            return burn.calories > 0 ? burn.calories : nil
+        } catch {
+            return nil
+        }
+    }
+
+    // MARK: - Free-text helpers (numbers are supplied; the model only words them)
+
+    @MainActor
+    static func weeklyInsight(facts: String) async -> String? {
+        await generateText(
+            instructions: """
+            You are a supportive health coach. Given a person's last-7-day stats, give one or two \
+            short sentences of insight plus a single practical tip. Be encouraging and specific. Do \
+            not invent numbers beyond those given.
+            """,
+            prompt: facts
+        )
+    }
+
+    @MainActor
+    static func polishBriefing(facts: String) async -> String? {
+        await generateText(
+            instructions: """
+            Rephrase today's stats into a warm, motivating one-paragraph recap ending with a short \
+            actionable tip. Keep all numbers exactly as given; do not invent any.
+            """,
+            prompt: facts
+        )
+    }
+
+    @MainActor
+    static func suggestMeals(remaining: Int, context: String) async -> String? {
+        await generateText(
+            instructions: """
+            You are a nutrition assistant. Suggest two or three concrete meal ideas that fit within \
+            the person's remaining calorie budget for today, with rough calorie counts. Keep it brief.
+            """,
+            prompt: "Remaining budget: \(remaining) kcal. \(context)"
+        )
+    }
+
+    // MARK: - Action mapping
 
     /// Maps a model-produced action token to an `Action`, tolerating spacing/case. Returns `nil`
     /// for unrecognized or `unknown` tokens so the caller can fall back to rules.
@@ -63,6 +205,9 @@ enum HaloIntelligence {
         switch token {
         case "addhabit", "add habit", "new habit": return .addHabit
         case "todo", "to-do", "task": return .todo
+        case "extracttodos", "extract todos", "extract", "extracttasks": return .extractTodos
+        case "insight", "insights", "trends": return .insights
+        case "suggestion", "suggestions": return .suggest
         default:
             guard let action = VoiceCommandRouter.Action(rawValue: token), action != .unknown else { return nil }
             return action
