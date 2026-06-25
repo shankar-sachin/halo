@@ -1,5 +1,5 @@
 # Halo Lifestyle
-
+![Halo Lifestyle Demo GIF](assets/demo.gif)
 A voice-powered lifestyle app for iOS 26 that bundles eight everyday trackers behind one conversational assistant. Speak a command — *"Halo, add a to-do"*, *"log a coffee"*, *"I drank a glass of water"* — and Halo turns it into the right entry, on device.
 
 > Display name: **Halo Lifestyle** · Spoken name: **Halo** · Bundle ID: `com.sachi.halo`
@@ -41,10 +41,10 @@ Plus:
 xcodegen generate
 
 # 2. Open it
-open Todo.xcodeproj
+open Halo.xcodeproj
 
 # Or build from the command line
-xcodebuild -project Todo.xcodeproj -scheme Todo -sdk iphonesimulator
+xcodebuild -project Halo.xcodeproj -scheme Halo -sdk iphonesimulator
 ```
 
 > The `.xcodeproj` is **generated** and git-ignored. After cloning, run `xcodegen generate` before building. Edit `project.yml` — not the project file — to change targets, settings, or capabilities.
@@ -56,8 +56,8 @@ Voice features (speech recognition, Siri, microphone) and HealthKit require a re
 ```
 project.yml                 XcodeGen project definition (source of truth)
 assets/                     Source artwork (e.g. app icon master)
-Todo/
-  TodoApp.swift             App entry point
+Halo/
+  HaloApp.swift             App entry point
   Models/                   SwiftData models (TodoItem, Note, DietEntry, …)
   Features/                 SwiftUI screens, grouped by tab
   Services/                 Speech, voice routing, calorie estimation, HealthKit, notifications
@@ -67,14 +67,14 @@ Todo/
   Support/                  AppSettings, shared defaults
   Resources/                foods.json, Assets.xcassets (incl. AppIcon)
 HaloWidgets/                WidgetKit extension (shares Models + Theme + AppSettings)
-TodoTests/                  Unit tests
+HaloTests/                  Unit tests
 ```
 
 ## Targets
 
-- **Todo** — the main iOS app
+- **Halo** — the main iOS app
 - **HaloWidgets** — WidgetKit app extension
-- **TodoTests** — unit test bundle
+- **HaloTests** — unit test bundle
 
 ## Architecture notes
 
