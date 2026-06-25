@@ -10,12 +10,12 @@ DerivedData/
 # Xcode user-specific data
 xcuserdata/
 *.xcworkspace/xcuserdata/
-Todo.xcodeproj/xcuserdata/
-Todo.xcodeproj/project.xcworkspace/xcuserdata/
+Halo.xcodeproj/xcuserdata/
+Halo.xcodeproj/project.xcworkspace/xcuserdata/
 
 # Generated Xcode project (regenerate with `xcodegen generate`)
 # The project is defined by project.yml; the .xcodeproj is generated.
-Todo.xcodeproj/
+Halo.xcodeproj/
 
 # Swift Package Manager
 .build/
