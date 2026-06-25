@@ -175,6 +175,21 @@
     }
     .chip b { font-weight: 700; }
 
+    /* ---------- Device frame ---------- */
+    .device {
+      margin: 56px auto 0; width: 268px; max-width: 76vw;
+      border-radius: 46px; padding: 11px; position: relative;
+      background: linear-gradient(160deg, #23283b, #0c0e14);
+      box-shadow: 0 34px 80px rgba(12,14,20,0.34), inset 0 0 0 1.5px rgba(255,255,255,0.08);
+    }
+    .device::after {
+      content: ""; position: absolute; inset: -44px; z-index: -1; border-radius: 72px;
+      background: radial-gradient(closest-side, rgba(92,140,255,0.42), rgba(148,115,242,0.28), transparent 72%);
+      filter: blur(28px);
+    }
+    .device img { display: block; width: 100%; border-radius: 36px; }
+    .device-caption { text-align: center; color: var(--ink-soft); font-size: 0.9rem; margin-top: 20px; }
+
     /* ---------- Footer ---------- */
     footer { padding: 56px 0 70px; text-align: center; color: var(--ink-soft); font-size: 0.9rem; }
     footer .brand { justify-content: center; margin-bottom: 14px; color: var(--ink); }
@@ -190,7 +205,8 @@
       <div class="nav-links">
         <a href="#trackers">Trackers</a>
         <a href="#voice">Voice</a>
-        <a href="#built">Built on</a>
+        <a href="#built">Behind the Scenes</a>
+        <a href="#demo">Demo</a>
         <a href="https://github.com/shankar-sachin/halo" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
@@ -207,6 +223,12 @@
         <a class="btn btn-primary" href="#trackers">See what it tracks →</a>
         <a class="btn btn-ghost" href="#voice">How the voice works</a>
       </div>
+    <section id="demo" class="reveal"> 
+      <div class="device reveal">
+        <img src="assets/demo.gif" alt="Halo Lifestyle — logging an entry by voice" />
+      </div>
+      <p class="device-caption">Halo Lifestyle in action.</p>
+    </section>
     </div>
   </header>
 

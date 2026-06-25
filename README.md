@@ -1,5 +1,13 @@
+<div align="center">
+
 # Halo Lifestyle
-![Halo Lifestyle Demo GIF](assets/demo.gif)
+
+**One voice for your whole day.** A voice-powered iOS 26 lifestyle app that bundles eight everyday trackers behind one conversational assistant.
+
+<img src="assets/demo.gif" alt="Halo Lifestyle demo" width="260" />
+
+</div>
+
 A voice-powered lifestyle app for iOS 26 that bundles eight everyday trackers behind one conversational assistant. Speak a command — *"Halo, add a to-do"*, *"log a coffee"*, *"I drank a glass of water"* — and Halo turns it into the right entry, on device.
 
 > Display name: **Halo Lifestyle** · Spoken name: **Halo** · Bundle ID: `com.sachi.halo`
