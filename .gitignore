@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+
+# Xcode build output
+build/
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+
+# Xcode user-specific data
+xcuserdata/
+*.xcworkspace/xcuserdata/
+Todo.xcodeproj/xcuserdata/
+Todo.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Generated Xcode project (regenerate with `xcodegen generate`)
+# The project is defined by project.yml; the .xcodeproj is generated.
+Todo.xcodeproj/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# CocoaPods / Carthage (unused, but ignored for safety)
+Pods/
+Carthage/Build/
+
+# Misc
+*.log
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
