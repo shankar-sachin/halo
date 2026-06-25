@@ -15,6 +15,12 @@ struct CalorieEstimator {
         var food: String
         @Guide(description: "Estimated total calories (kcal) for the described amount.")
         var calories: Int
+        @Guide(description: "Estimated protein in grams for the described amount.")
+        var protein: Int
+        @Guide(description: "Estimated carbohydrates in grams for the described amount.")
+        var carbs: Int
+        @Guide(description: "Estimated fat in grams for the described amount.")
+        var fat: Int
     }
 
     static let shared = CalorieEstimator()
@@ -44,8 +50,9 @@ struct CalorieEstimator {
     private func modelEstimate(for phrase: String) async -> CalorieEstimate? {
         let instructions = """
         You are a nutrition assistant. Given a description of food a person ate, estimate the \
-        total calories for the amount described. Use typical average values. If no amount is \
-        given, assume one standard serving. Respond only with the structured result.
+        total calories and the macronutrients (protein, carbohydrates, fat) in grams for the \
+        amount described. Use typical average values. If no amount is given, assume one standard \
+        serving. Respond only with the structured result.
         """
         do {
             let session = LanguageModelSession(instructions: instructions)
@@ -56,7 +63,14 @@ struct CalorieEstimator {
             let result = response.content
             let calories = max(result.calories, 0)
             guard calories > 0 else { return nil }
-            return CalorieEstimate(foodText: phrase, calories: calories, source: .ai)
+            return CalorieEstimate(
+                foodText: phrase,
+                calories: calories,
+                source: .ai,
+                protein: max(result.protein, 0),
+                carbs: max(result.carbs, 0),
+                fat: max(result.fat, 0)
+            )
         } catch {
             return nil
         }

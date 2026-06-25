@@ -35,6 +35,17 @@ Plus:
 - **HealthKit** — dietary energy reads/writes keep daily totals in sync with Apple Health.
 - **App Group** — the app, the widgets, and the Siri intents share one SwiftData store (`group.com.sachi.halo`), so an entry created by Siri shows up everywhere immediately.
 
+## What your voice can do
+
+Control your whole day by talking — no menus, no tab-hopping.
+
+- **AI calorie & macros (on-device)** — say what you ate in plain words and Halo's on-device Apple Intelligence foundation model estimates the calories **and** protein/carbs/fat (free-form, offline, private), tracks your budget, and syncs to Apple Health. Falls back to a bundled food database when Apple Intelligence isn't available.
+- **AI understanding** — the same on-device model reads your intent, so natural phrasing just works: *"I crushed a 5k this morning"* logs a workout, *"what's left for dinner?"* answers a question. A deterministic rule-based router is the offline fallback.
+- **Ask Halo** — *"How many calories do I have left?"*, *"what's on my to-do list?"*, *"how much water today?"* — Halo reads your data and answers.
+- **Daily briefing** — *"Halo, how's my day?"* recaps calories, water, open to-dos, and habit streaks in one go.
+- **Edit & delete by voice** — beyond creating: *"reschedule call mom to 7pm"*, *"rename groceries to buy oat milk"*, *"delete my last water"*.
+- **One breath, done** — the in-app and background modes capture the whole sentence at once; natural-language times become scheduled reminders, and *"I finished the dishes"* fuzzy-matches and checks off the task (streaks included).
+
 ## Requirements
 
 - **Xcode 26** or newer

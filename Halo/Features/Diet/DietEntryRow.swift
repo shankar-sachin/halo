@@ -22,6 +22,11 @@ struct DietEntryRow: View {
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    if entry.hasMacros {
+                        Text("P \(entry.protein)g · C \(entry.carbs)g · F \(entry.fat)g")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(Theme.dietTint)
+                    }
                 }
                 Spacer()
                 HStack(alignment: .firstTextBaseline, spacing: 2) {

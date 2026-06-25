@@ -156,9 +156,14 @@
       background: var(--card); border: 1px solid var(--hair); border-radius: var(--radius);
       padding: 28px; backdrop-filter: blur(14px);
     }
-    .cap h3 { font-size: 1.15rem; margin-bottom: 9px; display: flex; align-items: center; gap: 10px; }
+    .cap h3 { font-size: 1.15rem; margin-bottom: 9px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .cap h3 .pip { width: 10px; height: 10px; border-radius: 3px; }
     .cap p { color: var(--ink-soft); font-size: 0.96rem; }
+    .ai-badge {
+      font-size: 0.62rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 999px; color: #fff;
+      background: linear-gradient(100deg, var(--habits), var(--diet));
+    }
 
     /* ---------- Voice strip ---------- */
     .voice-strip {
@@ -291,11 +296,35 @@
   <section id="built">
     <div class="wrap">
       <div class="section-head reveal">
-        <div class="eyebrow">Under the hood</div>
-        <h2>Native, private, connected</h2>
-        <p>Built the Apple way and wired into the system features you already use.</p>
+        <div class="eyebrow">What your voice can do</div>
+        <h2>Control your life with just your voice</h2>
+        <p>On-device AI, natural-language commands, and the native foundation that ties it together.</p>
       </div>
       <div class="cap-grid">
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--diet)"></span> AI calorie &amp; macros <span class="ai-badge">✨ AI</span></h3>
+          <p>Say what you ate in plain words — Halo's <b>on-device Apple Intelligence model</b> estimates the calories <em>and</em> protein/carbs/fat (no fixed food list, offline, private), counts down your budget, and syncs to Apple Health.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--habits)"></span> AI understanding <span class="ai-badge">✨ AI</span></h3>
+          <p>The same on-device model reads your intent, so natural phrasing just works — “I crushed a 5k this morning” logs a workout, “what's left for dinner?” answers a question.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--todo)"></span> Ask Halo anything</h3>
+          <p>“How many calories do I have left?”, “what's on my to-do list?”, “how much water today?” — Halo reads your data and answers out loud.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--notes)"></span> Daily briefing</h3>
+          <p>“Halo, how's my day?” gives a one-breath recap — calories, water, open to-dos, and habit streaks across every tracker.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--mood)"></span> Edit &amp; delete by voice</h3>
+          <p>Not just create — “reschedule call mom to 7pm”, “rename groceries to buy oat milk”, “delete my last water” all work hands-free.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--workouts)"></span> Hands-free</h3>
+          <p>Turn on background listening and just say “Halo, …” while the app's open or pocketed — it confirms with a notification.</p>
+        </div>
         <div class="cap reveal">
           <h3><span class="pip" style="background:var(--todo)"></span> Siri &amp; App Intents</h3>
           <p>Add to-dos, notes, and meals by voice without ever opening the app.</p>

@@ -123,6 +123,32 @@ struct VoiceCommandRouterTests {
         let (action, _) = VoiceCommandRouter().classify("that I ate my digestion pill")
         #expect(action == .pill)
     }
+
+    @Test func classifiesQuery() {
+        #expect(VoiceCommandRouter().classify("Halo how many calories do I have left").action == .query)
+        #expect(VoiceCommandRouter().classify("Halo what's on my to-do list").action == .query)
+        #expect(VoiceCommandRouter().classify("Halo how much water today?").action == .query)
+    }
+
+    @Test func classifiesBriefing() {
+        #expect(VoiceCommandRouter().classify("Halo how's my day").action == .briefing)
+        #expect(VoiceCommandRouter().classify("Halo give me a summary").action == .briefing)
+    }
+
+    @Test func classifiesDelete() {
+        #expect(VoiceCommandRouter().classify("Halo delete the milk to-do").action == .delete)
+        #expect(VoiceCommandRouter().classify("Halo remove my last water").action == .delete)
+    }
+
+    @Test func classifiesEdit() {
+        #expect(VoiceCommandRouter().classify("Halo reschedule call mom to 7pm").action == .edit)
+        #expect(VoiceCommandRouter().classify("Halo rename groceries to buy oat milk").action == .edit)
+    }
+
+    @Test func deleteIsNotMistakenForCreate() {
+        // "delete the milk to-do" must not be read as a new .todo.
+        #expect(VoiceCommandRouter().classify("Halo delete the milk to-do").action != .todo)
+    }
 }
 
 struct VoiceParsingTests {

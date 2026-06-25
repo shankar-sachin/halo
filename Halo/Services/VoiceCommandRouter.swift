@@ -5,7 +5,8 @@ import Foundation
 @MainActor
 struct VoiceCommandRouter {
     enum Action: String {
-        case todo, note, meal, complete, water, workout, mood, habit, addHabit, pill, unknown
+        case todo, note, meal, complete, water, workout, mood, habit, addHabit, pill
+        case query, briefing, delete, edit, unknown
 
         var systemImage: String {
             switch self {
@@ -18,6 +19,10 @@ struct VoiceCommandRouter {
             case .mood: "face.smiling"
             case .habit, .addHabit: "checkmark.seal"
             case .pill: "pills.fill"
+            case .query: "magnifyingglass"
+            case .briefing: "sun.max"
+            case .delete: "trash"
+            case .edit: "pencil"
             case .unknown: "questionmark.circle"
             }
         }
@@ -43,6 +48,13 @@ struct VoiceCommandRouter {
         let cleaned = Self.stripWakeWord(transcript)
         guard !cleaned.isEmpty else { return (.unknown, "") }
         let lower = cleaned.lowercased()
+
+        // Intent verbs that read/modify existing data — checked before create-prefixes so
+        // "delete the milk to-do" or "how much water today" aren't read as new entries.
+        if Self.isBriefing(lower) { return (.briefing, cleaned) }
+        if Self.editPrefixes.contains(where: { lower.hasPrefix($0) }) { return (.edit, cleaned) }
+        if Self.deletePrefixes.contains(where: { lower.hasPrefix($0) }) { return (.delete, cleaned) }
+        if Self.isQuery(lower) { return (.query, cleaned) }
 
         // Signal-based detection for the trackers (parsers extract values from the full phrase).
         if lower.contains("pill") || lower.contains("medication") || lower.contains("medicine")
@@ -71,6 +83,22 @@ struct VoiceCommandRouter {
         return (.todo, cleaned)
     }
 
+    private static let deletePrefixes = ["delete", "remove", "cancel", "get rid of", "clear"]
+    private static let editPrefixes = ["change", "rename", "reschedule", "edit", "update", "move", "set the"]
+
+    private static func isBriefing(_ lower: String) -> Bool {
+        let phrases = ["how's my day", "how is my day", "hows my day", "daily summary",
+                       "summarize my day", "briefing", "brief me", "recap", "how am i doing",
+                       "how's my day going", "give me a summary", "rundown"]
+        return phrases.contains { lower.contains($0) }
+    }
+
+    private static func isQuery(_ lower: String) -> Bool {
+        let starters = ["how many", "how much", "what's", "what is", "what are", "do i have",
+                        "do i", "list", "show me", "tell me", "what's left", "how's"]
+        return lower.hasSuffix("?") || starters.contains { lower.hasPrefix($0) }
+    }
+
     private static func isWorkout(_ lower: String) -> Bool {
         let hasWorkoutWord = ["workout", "exercise", "worked out", "work out", "gym"]
             .contains { lower.contains($0) }
@@ -80,8 +108,11 @@ struct VoiceCommandRouter {
     }
 
     /// Classifies then performs the command, returning a spoken-style confirmation.
+    ///
+    /// Tries on-device AI understanding first (`HaloIntelligence`); falls back to the deterministic
+    /// rule-based `classify` when Apple Intelligence is unavailable or unsure.
     func handle(_ transcript: String) async -> (action: Action, message: String) {
-        let (action, payload) = classify(transcript)
+        let (action, payload) = await HaloIntelligence.classify(transcript) ?? classify(transcript)
         let actions = CommandActions()
         switch action {
         case .todo: return (action, await actions.addTodo(payload))
@@ -94,6 +125,10 @@ struct VoiceCommandRouter {
         case .habit: return (action, await actions.completeHabit(payload))
         case .addHabit: return (action, await actions.addHabit(payload))
         case .pill: return (action, await actions.logPill(payload))
+        case .query: return (action, await actions.answer(payload))
+        case .briefing: return (action, await actions.dailyBriefing())
+        case .delete: return (action, await actions.deleteEntry(payload))
+        case .edit: return (action, await actions.editTodo(payload))
         case .unknown: return (action, "I didn't catch that. Try “Halo, add a to-do…”.")
         }
     }

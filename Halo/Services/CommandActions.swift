@@ -86,14 +86,20 @@ struct CommandActions {
             foodText: foodText,
             calories: estimate.calories,
             at: loggedAt,
-            source: estimate.source
+            source: estimate.source,
+            protein: estimate.protein,
+            carbs: estimate.carbs,
+            fat: estimate.fat
         )
 
         let remaining = max(SettingsDefault.budget - result.consumedToday, 0)
         if estimate.calories <= 0 {
             return "Logged “\(foodText)”. I couldn't estimate the calories — you can set them in the app."
         }
-        return "Logged \(estimate.calories) calories for \(foodText). You have \(remaining) left today."
+        let macros = estimate.hasMacros
+            ? " (\(estimate.protein)g protein, \(estimate.carbs)g carbs, \(estimate.fat)g fat)"
+            : ""
+        return "Logged \(estimate.calories) calories\(macros) for \(foodText). You have \(remaining) left today."
     }
 
     // MARK: - Water
@@ -169,5 +175,234 @@ struct CommandActions {
             try? context.save()
         }
         return "Marked “\(habit.name)” done — \(habit.streak) day streak! 🔥"
+    }
+
+    // MARK: - Ask Halo (queries)
+
+    /// Answers a spoken question by reading the user's data. Numbers are computed exactly from
+    /// SwiftData — the AI only routes the question here, it never invents figures.
+    func answer(_ raw: String) async -> String {
+        let lower = raw.lowercased()
+
+        if lower.contains("calorie") || lower.contains("budget") || lower.contains("eaten")
+            || lower.contains("food") || lower.contains("diet") {
+            let consumed = MealLogger(context: context).consumedToday()
+            return TreatSuggester().message(consumed: consumed, budget: SettingsDefault.budget).body
+        }
+        if lower.contains("water") || lower.contains("hydrat") || lower.contains("drink") || lower.contains("drank") {
+            let total = todaysWater()
+            let goal = SettingsDefault.waterGoal
+            let remaining = max(goal - total, 0)
+            return remaining > 0
+                ? "You've had \(total) ml of water today — \(remaining) ml to go to hit \(goal) ml."
+                : "You've had \(total) ml of water today — you've hit your \(goal) ml goal. 💧"
+        }
+        if lower.contains("habit") {
+            let habits = (try? context.fetch(FetchDescriptor<Habit>())) ?? []
+            guard !habits.isEmpty else { return "You don't have any habits yet." }
+            let done = habits.filter { $0.isCompleted() }.count
+            let best = habits.map(\.streak).max() ?? 0
+            return "You've done \(done) of \(habits.count) habits today. Best streak: \(best) day\(best == 1 ? "" : "s")."
+        }
+        if lower.contains("mood") || lower.contains("feel") {
+            var descriptor = FetchDescriptor<MoodEntry>(sortBy: [SortDescriptor(\.loggedAt, order: .reverse)])
+            descriptor.fetchLimit = 1
+            guard let mood = (try? context.fetch(descriptor))?.first else { return "You haven't logged a mood yet." }
+            return "Your last mood was \(MoodEntry.label(for: mood.rating)) \(mood.emoji)."
+        }
+        if lower.contains("workout") || lower.contains("exercise") || lower.contains("gym") {
+            let (start, end) = Self.todayInterval()
+            let workouts = (try? context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.loggedAt >= start && $0.loggedAt < end }))) ?? []
+            guard !workouts.isEmpty else { return "No workouts logged today." }
+            let minutes = workouts.reduce(0) { $0 + $1.durationMinutes }
+            return "You've logged \(workouts.count) workout\(workouts.count == 1 ? "" : "s") today — \(minutes) minutes total."
+        }
+        if lower.contains("pill") || lower.contains("medication") || lower.contains("vitamin") || lower.contains("supplement") {
+            let (start, end) = Self.todayInterval()
+            let pills = (try? context.fetch(FetchDescriptor<PillLog>(predicate: #Predicate { $0.loggedAt >= start && $0.loggedAt < end }))) ?? []
+            guard !pills.isEmpty else { return "No pills logged today." }
+            return "You've logged \(pills.count) today: \(pills.map(\.name).joined(separator: ", "))."
+        }
+
+        // Default: open to-dos ("what's on my list", "what do I have to do").
+        let open = openTodos()
+        guard !open.isEmpty else { return "You're all caught up — no open to-dos." }
+        let preview = open.prefix(3).map { "“\($0.title)”" }.joined(separator: ", ")
+        let more = open.count > 3 ? " and \(open.count - 3) more" : ""
+        return "You have \(open.count) open to-do\(open.count == 1 ? "" : "s"): \(preview)\(more)."
+    }
+
+    // MARK: - Daily briefing
+
+    /// A spoken recap of today across the trackers.
+    func dailyBriefing() async -> String {
+        let consumed = MealLogger(context: context).consumedToday()
+        let budget = SettingsDefault.budget
+        let calLine = consumed > 0
+            ? "🍽️ \(consumed) of \(budget) kcal — \(max(budget - consumed, 0)) left"
+            : "🍽️ No meals logged yet"
+
+        let waterLine = "💧 \(todaysWater()) of \(SettingsDefault.waterGoal) ml water"
+
+        let open = openTodos()
+        let todoLine = open.isEmpty ? "✅ No open to-dos" : "✅ \(open.count) open to-do\(open.count == 1 ? "" : "s")"
+
+        var lines = ["Here's your day:", calLine, waterLine, todoLine]
+
+        let habits = (try? context.fetch(FetchDescriptor<Habit>())) ?? []
+        if !habits.isEmpty {
+            lines.append("🔁 \(habits.filter { $0.isCompleted() }.count)/\(habits.count) habits done")
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    // MARK: - Edit & delete
+
+    /// Removes an entry by voice — to-dos/notes/habits by fuzzy title, or the latest entry of a
+    /// named tracker ("delete my last water").
+    func deleteEntry(_ raw: String) async -> String {
+        let lower = raw.lowercased()
+        let target = Self.targetText(from: raw)
+
+        if lower.contains("note") {
+            let notes = (try? context.fetch(FetchDescriptor<Note>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)]))) ?? []
+            guard !notes.isEmpty else { return "You don't have any notes to delete." }
+            if !target.isEmpty, let index = TodoMatcher().bestMatchIndex(for: target, in: notes.map(\.title)) {
+                let note = notes[index]; context.delete(note); try? context.save()
+                return "Deleted the note “\(note.title)”."
+            }
+            let note = notes[0]; context.delete(note); try? context.save()
+            return "Deleted your latest note."
+        }
+        if lower.contains("habit") {
+            let habits = (try? context.fetch(FetchDescriptor<Habit>())) ?? []
+            guard !habits.isEmpty else { return "You don't have any habits." }
+            guard let index = TodoMatcher().bestMatchIndex(for: target, in: habits.map(\.name)) else {
+                return "I couldn't find a habit matching “\(target)”."
+            }
+            let habit = habits[index]; context.delete(habit); try? context.save()
+            return "Deleted the habit “\(habit.name)”."
+        }
+        if lower.contains("water") { return deleteLatestWater() }
+        if lower.contains("workout") || lower.contains("exercise") { return deleteLatestWorkout() }
+        if lower.contains("pill") || lower.contains("medication") || lower.contains("vitamin") || lower.contains("supplement") { return deleteLatestPill() }
+        if lower.contains("mood") { return deleteLatestMood() }
+        if lower.contains("meal") || lower.contains("food") { return deleteLatestMeal() }
+
+        // Default: a to-do, matched by title.
+        let todos = (try? context.fetch(FetchDescriptor<TodoItem>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)]))) ?? []
+        guard !todos.isEmpty else { return "You don't have any to-dos to delete." }
+        let search = target.isEmpty ? raw : target
+        guard let index = TodoMatcher().bestMatchIndex(for: search, in: todos.map(\.title)) else {
+            return "I couldn't find a to-do matching “\(search)”."
+        }
+        let item = todos[index]
+        NotificationService.shared.cancelReminder(id: item.persistentModelID.storeIdentifier ?? "")
+        context.delete(item); try? context.save()
+        return "Deleted the to-do “\(item.title)”."
+    }
+
+    /// Renames or reschedules an existing to-do by voice ("reschedule call mom to 7pm",
+    /// "rename groceries to buy oat milk").
+    func editTodo(_ raw: String) async -> String {
+        let open = openTodos()
+        guard !open.isEmpty else { return "You don't have any open to-dos to change." }
+
+        var targetPart = raw
+        var changePart = ""
+        if let range = raw.range(of: " to ", options: [.caseInsensitive, .backwards]) {
+            targetPart = String(raw[..<range.lowerBound])
+            changePart = String(raw[range.upperBound...])
+        }
+        let targetText = Self.targetText(from: targetPart)
+        let search = targetText.isEmpty ? Self.targetText(from: raw) : targetText
+        guard let index = TodoMatcher().bestMatchIndex(for: search, in: open.map(\.title)) else {
+            return "I couldn't find a to-do matching “\(search)”."
+        }
+        let item = open[index]
+
+        // A parseable time → reschedule; otherwise rename to the change text.
+        if let newDate = parser.parseDate(from: changePart.isEmpty ? raw : changePart) {
+            item.dueDate = newDate
+            try? context.save()
+            await NotificationService.shared.scheduleReminder(
+                id: item.persistentModelID.storeIdentifier ?? UUID().uuidString,
+                title: item.title,
+                at: newDate
+            )
+            let when = newDate.formatted(date: .abbreviated, time: .shortened)
+            return "Rescheduled “\(item.title)” to \(when)."
+        }
+        let newTitle = changePart.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !newTitle.isEmpty else { return "Tell me how to change it — a new time or a new name." }
+        let old = item.title
+        item.title = newTitle
+        try? context.save()
+        return "Renamed “\(old)” to “\(newTitle)”."
+    }
+
+    // MARK: - Helpers
+
+    private func openTodos() -> [TodoItem] {
+        let descriptor = FetchDescriptor<TodoItem>(
+            predicate: #Predicate { $0.isDone == false },
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        return (try? context.fetch(descriptor)) ?? []
+    }
+
+    private func deleteLatestWater() -> String {
+        var d = FetchDescriptor<WaterEntry>(sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]); d.fetchLimit = 1
+        guard let entry = (try? context.fetch(d))?.first else { return "No water entries to delete." }
+        context.delete(entry); try? context.save()
+        return "Deleted your last water entry (\(entry.amountML) ml)."
+    }
+
+    private func deleteLatestWorkout() -> String {
+        var d = FetchDescriptor<Workout>(sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]); d.fetchLimit = 1
+        guard let entry = (try? context.fetch(d))?.first else { return "No workouts to delete." }
+        context.delete(entry); try? context.save()
+        return "Deleted your last \(entry.type.lowercased()) workout."
+    }
+
+    private func deleteLatestPill() -> String {
+        var d = FetchDescriptor<PillLog>(sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]); d.fetchLimit = 1
+        guard let entry = (try? context.fetch(d))?.first else { return "No pills to delete." }
+        context.delete(entry); try? context.save()
+        return "Deleted your last \(entry.name)."
+    }
+
+    private func deleteLatestMood() -> String {
+        var d = FetchDescriptor<MoodEntry>(sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]); d.fetchLimit = 1
+        guard let entry = (try? context.fetch(d))?.first else { return "No mood entries to delete." }
+        context.delete(entry); try? context.save()
+        return "Deleted your last mood entry."
+    }
+
+    private func deleteLatestMeal() -> String {
+        var d = FetchDescriptor<DietEntry>(sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]); d.fetchLimit = 1
+        guard let entry = (try? context.fetch(d))?.first else { return "No meals to delete." }
+        context.delete(entry); try? context.save()
+        return "Deleted your last meal (\(entry.foodText))."
+    }
+
+    private static func todayInterval() -> (start: Date, end: Date) {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: .now)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? .now
+        return (start, end)
+    }
+
+    /// Strips routing verbs, articles, and tracker nouns to leave the descriptive target text.
+    private static func targetText(from raw: String) -> String {
+        let stop: Set<String> = [
+            "delete", "remove", "cancel", "clear", "change", "rename", "reschedule", "edit", "update",
+            "move", "get", "rid", "of", "set",
+            "the", "my", "a", "an", "that", "this", "last", "latest", "recent",
+            "to-do", "todo", "task", "note", "habit", "water", "workout", "exercise",
+            "pill", "pills", "medication", "vitamin", "supplement", "mood", "meal", "food", "entry", "log",
+        ]
+        let words = raw.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init)
+        return words.filter { !stop.contains($0) }.joined(separator: " ").trimmingCharacters(in: .whitespaces)
     }
 }
