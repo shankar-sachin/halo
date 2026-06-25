@@ -29,8 +29,8 @@ Eight tabs, one shared data store:
 
 Plus:
 
-- **Talk to Halo** — a voice mode accessible from every tab. On-device speech recognition routes spoken commands to the right tracker.
-- **Siri & App Intents** — add to-dos, notes, and meals by voice without opening the app.
+- **"Hey Siri, tell Halo that…"** — one command for everything. Say *"Hey Siri, tell Halo that I drank a glass of water"* (or to add a to-do, log a meal, …) and Halo figures out the rest — no app to open, no tab to find.
+- **Talk to Halo (in-app voice)** — prefer to stay in the app? Tap **"Talk to Halo"** from any tab and speak a whole sentence. On-device speech recognition routes the command to the right tracker — no Siri needed, nothing leaves your phone.
 - **WidgetKit** — home-screen widgets for upcoming to-dos and the daily calorie ring.
 - **HealthKit** — dietary energy reads/writes keep daily totals in sync with Apple Health.
 - **App Group** — the app, the widgets, and the Siri intents share one SwiftData store (`group.com.sachi.halo`), so an entry created by Siri shows up everywhere immediately.

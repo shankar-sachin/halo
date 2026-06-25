@@ -166,6 +166,10 @@
       color: #fff; border-radius: 30px; padding: 56px 40px; text-align: center;
       box-shadow: 0 30px 80px rgba(12,14,20,0.30);
     }
+    .voice-eyebrow {
+      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: rgba(255,255,255,0.55); margin-bottom: 14px;
+    }
     .voice-strip h2 { font-size: clamp(1.7rem, 4vw, 2.5rem); letter-spacing: -0.02em; margin-bottom: 16px; }
     .voice-strip p { color: rgba(255,255,255,0.72); max-width: 560px; margin: 0 auto 30px; font-size: 1.05rem; }
     .chips { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
@@ -187,7 +191,7 @@
       background: radial-gradient(closest-side, rgba(92,140,255,0.42), rgba(148,115,242,0.28), transparent 72%);
       filter: blur(28px);
     }
-    .device img { display: block; width: 100%; border-radius: 36px; }
+    .device img, .device video { display: block; width: 100%; border-radius: 36px; }
     .device-caption { text-align: center; color: var(--ink-soft); font-size: 0.9rem; margin-top: 20px; }
 
     /* ---------- Footer ---------- */
@@ -203,10 +207,10 @@
     <div class="wrap">
       <div class="brand"><img src="assets/halo.png" alt="Halo Lifestyle icon" /> Halo Lifestyle</div>
       <div class="nav-links">
+        <a href="#demo">Demo</a>
         <a href="#trackers">Trackers</a>
         <a href="#voice">Voice</a>
         <a href="#built">Behind the Scenes</a>
-        <a href="#demo">Demo</a>
         <a href="https://github.com/shankar-sachin/halo" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
@@ -225,7 +229,7 @@
       </div>
     <section id="demo" class="reveal"> 
       <div class="device reveal">
-        <img src="assets/demo.gif" alt="Halo Lifestyle — logging an entry by voice" />
+        <video src="assets/demo.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Halo Lifestyle — logging an entry by voice"></video>
       </div>
       <p class="device-caption">Halo Lifestyle in action.</p>
     </section>
@@ -271,13 +275,14 @@
   <section id="voice">
     <div class="wrap">
       <div class="voice-strip reveal">
-        <h2>Talk to Halo</h2>
-        <p>A voice mode reachable from every tab. On-device speech recognition routes spoken commands to the right tracker — no network round-trip, nothing leaves your phone.</p>
+        <div class="voice-eyebrow">One command for everything</div>
+        <h2>“Hey&nbsp;Siri, tell&nbsp;Halo&nbsp;that…”</h2>
+        <p>…and Halo figures out the rest — no app to open, no tab to find. A voice mode is also built into every tab. On-device speech recognition routes spoken commands to the right tracker — no network round-trip, nothing leaves your phone.</p>
         <div class="chips">
-          <div class="chip">“Halo, <b>add a to-do</b> to call the dentist”</div>
-          <div class="chip">“<b>Log</b> a turkey sandwich”</div>
-          <div class="chip">“I <b>drank</b> a glass of water”</div>
-          <div class="chip">“<b>Note</b>: book flights for July”</div>
+          <div class="chip">“…<b>add a to-do</b> to call the dentist”</div>
+          <div class="chip">“…I <b>ate</b> a turkey sandwich”</div>
+          <div class="chip">“…I <b>drank</b> a glass of water”</div>
+          <div class="chip">“…<b>note</b> to book flights for July”</div>
         </div>
       </div>
     </div>
@@ -294,6 +299,10 @@
         <div class="cap reveal">
           <h3><span class="pip" style="background:var(--todo)"></span> Siri &amp; App Intents</h3>
           <p>Add to-dos, notes, and meals by voice without ever opening the app.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--pills)"></span> In-app voice</h3>
+          <p>Prefer to keep it in the app? Tap <b>“Talk to Halo”</b> from any tab and speak a whole sentence — on-device recognition logs it to the right tracker, no Siri needed.</p>
         </div>
         <div class="cap reveal">
           <h3><span class="pip" style="background:var(--diet)"></span> HealthKit</h3>
