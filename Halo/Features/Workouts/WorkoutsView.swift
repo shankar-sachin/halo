@@ -57,6 +57,7 @@ struct WorkoutsView: View {
                     }
                 }
                 .padding()
+                .readableWidth()
             }
             .background(Theme.backdrop(Theme.workoutsTint))
             .navigationTitle("Workouts")

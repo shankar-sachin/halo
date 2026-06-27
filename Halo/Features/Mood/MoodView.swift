@@ -17,6 +17,7 @@ struct MoodView: View {
                 }
                 .padding()
                 .padding(.bottom, 30)
+                .readableWidth()
             }
             .background(Theme.backdrop(Theme.moodTint))
             .navigationTitle("Mood")

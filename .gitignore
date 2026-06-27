@@ -33,3 +33,7 @@ Carthage/Build/
 *.dSYM.zip
 *.dSYM
 CLAUDE.md
+
+# Raw screen recordings — keep the compressed demo.gif/.mp4 in git, not the giant source MOVs
+*.mov
+Simulator Screen Recording*

@@ -21,7 +21,7 @@ struct HomeView: View {
 
     @State private var showSettings = false
 
-    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+    private let columns = [GridItem(.adaptive(minimum: 165), spacing: 12)]
 
     var body: some View {
         NavigationStack {
@@ -39,6 +39,7 @@ struct HomeView: View {
                         sleepCard
                     }
                 }
+                .readableWidth()
                 .padding()
                 .padding(.bottom, 30)
             }

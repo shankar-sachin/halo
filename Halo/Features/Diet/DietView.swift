@@ -52,6 +52,7 @@ struct DietView: View {
                     }
                 }
                 .padding(.bottom, 40)
+                .readableWidth()
             }
             .background(Theme.backdrop(Theme.dietTint))
             .navigationTitle("Diet")

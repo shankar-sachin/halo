@@ -4,7 +4,11 @@
 
 **One voice for your whole day.** A voice-powered iOS 26 lifestyle app that bundles ten everyday trackers — behind one conversational assistant and a glanceable Home dashboard.
 
-<img src="assets/demo.gif" alt="Halo Lifestyle demo" width="260" />
+<img src="assets/demo.gif" alt="Halo Lifestyle on iPhone" width="240" />
+&nbsp;&nbsp;
+<img src="assets/demo-ipad.gif" alt="Halo Lifestyle on iPad" width="340" />
+
+<sub>Halo Lifestyle on iPhone and iPad — universal, on iOS&nbsp;26 / iPadOS&nbsp;26.</sub>
 
 </div>
 

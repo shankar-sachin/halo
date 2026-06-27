@@ -44,6 +44,7 @@ struct WeightView: View {
                             ForEach(items) { item in row(item) }
                         }
                         .padding()
+                        .readableWidth()
                     }
                 }
             }

@@ -39,6 +39,7 @@ struct PillsView: View {
                             }
                         }
                         .padding()
+                        .readableWidth()
                     }
                 }
             }

@@ -22,6 +22,7 @@ struct WaterView: View {
                 }
                 .padding()
                 .padding(.bottom, 30)
+                .readableWidth()
             }
             .background(Theme.backdrop(Theme.waterTint))
             .navigationTitle("Water")

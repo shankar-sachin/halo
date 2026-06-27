@@ -20,6 +20,7 @@ struct InsightsView: View {
             }
             .padding()
             .padding(.bottom, 30)
+            .readableWidth()
         }
         .background(Theme.backdrop(Theme.habitsTint))
         .navigationTitle("Insights")

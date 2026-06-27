@@ -13,6 +13,9 @@ enum Theme {
     static let weightTint = Color(red: 0.45, green: 0.78, blue: 0.78)   // teal
     static let sleepTint = Color(red: 0.42, green: 0.40, blue: 0.78)    // deep indigo
 
+    /// Widest a column of content should grow to; keeps cards/charts readable on iPad.
+    static let maxContentWidth: CGFloat = 680
+
     /// Soft ambient background gradient that lets glass refraction read nicely.
     static func backdrop(_ tint: Color) -> some View {
         LinearGradient(
@@ -26,5 +29,14 @@ enum Theme {
         )
         .ignoresSafeArea()
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
+    }
+}
+
+extension View {
+    /// Caps content to a readable column and centers it. A no-op on iPhone-width
+    /// screens (where the cap exceeds the available width); keeps cards from
+    /// stretching edge-to-edge on iPad.
+    func readableWidth(_ width: CGFloat = Theme.maxContentWidth) -> some View {
+        frame(maxWidth: width).frame(maxWidth: .infinity)
     }
 }
