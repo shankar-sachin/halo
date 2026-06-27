@@ -21,15 +21,17 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Halo reads your dietary energy and your workouts from Apple Health (including Apple Watch and Fitness) to keep your day in sync.</string>
+	<string>Halo reads your dietary energy, workouts, body weight, and sleep from Apple Health (including Apple Watch and Fitness) to keep your day in sync.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Halo logs the calories of meals you record so they appear in the Health app.</string>
+	<string>Halo writes the meals and weigh-ins you record to the Health app so they stay in sync.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Halo listens while the app is open so you can speak commands like “Halo, add a to-do.”</string>
 	<key>NSSiriUsageDescription</key>
 	<string>Use Siri to add to-dos, notes, and meals by voice.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Halo turns your spoken commands into to-dos, notes, and meals on device.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

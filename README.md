@@ -2,37 +2,43 @@
 
 # Halo Lifestyle
 
-**One voice for your whole day.** A voice-powered iOS 26 lifestyle app that bundles eight everyday trackers behind one conversational assistant.
+**One voice for your whole day.** A voice-powered iOS 26 lifestyle app that bundles ten everyday trackers — behind one conversational assistant and a glanceable Home dashboard.
 
 <img src="assets/demo.gif" alt="Halo Lifestyle demo" width="260" />
 
 </div>
 
-A voice-powered lifestyle app for iOS 26 that bundles eight everyday trackers behind one conversational assistant. Speak a command — *"Halo, add a to-do"*, *"log a coffee"*, *"I drank a glass of water"* — and Halo turns it into the right entry, on device.
+A voice-powered lifestyle app for iOS 26 that bundles ten everyday trackers behind one conversational assistant. Speak a command — *"Halo, add a to-do"*, *"log a coffee"*, *"I drank a glass of water"*, *"I slept 7 hours"* — and Halo turns it into the right entry, on device. A **Home dashboard** sums up your whole day at a glance, and an on-device **patterns** engine finds connections across your trackers.
 
 > Display name: **Halo Lifestyle** · Spoken name: **Halo** · Bundle ID: `com.sachi.halo`
 
 ## Features
 
-Eight tabs, one shared data store:
+A **Home** dashboard plus ten trackers, one shared data store:
 
 | Tab | What it does |
 | --- | --- |
+| **Home** | A "Today" dashboard summarizing every tracker at a glance, with a tap-through to each and an Insights hub |
 | **To-Do** | Tasks with due dates, recurrence, and notifications |
-| **Notes** | Quick text notes |
-| **Diet** | Meal logging with on-device **AI** calorie + macro estimation, a daily calorie ring, weekly insights, and meal suggestions; syncs to the Health app |
-| **Habits** | Daily habit check-ins |
+| **Notes** | Quick text notes with a **rich-text** editor (bold, italic, headings) |
+| **Diet** | Meal logging with on-device **AI** calorie + macro estimation, a daily calorie ring, weekly insights, and **preference-aware** meal suggestions; syncs to the Health app |
+| **Habits** | Daily habit check-ins with streaks |
 | **Water** | Water intake tracking |
-| **Workouts** | Workout logging (voice + AI calorie-burn estimate) — and your **Apple Watch / Apple Fitness** workouts appear here automatically |
-| **Mood** | Mood check-ins |
-| **Pills** | Medication / supplement logging |
+| **Workouts** | Workout logging (voice + AI calorie-burn estimate), a **live workout** with Lock Screen / Dynamic Island timer, and your **Apple Watch / Apple Fitness** workouts merged in automatically |
+| **Mood** | Mood check-ins with optional **journaling** |
+| **Pills** | Medication / supplement logging, plus **recurring schedules & adherence** |
+| **Weight** | Body-weight logging with a trend chart, reading & writing **Apple Health** *(reachable from Home)* |
+| **Sleep** | Sleep logging and **Apple Watch / Apple Fitness** sleep, against your goal *(reachable from Home)* |
 
 Plus:
 
 - **"Hey Siri, tell Halo that…"** — one command for everything. Say *"Hey Siri, tell Halo that I drank a glass of water"* (or to add a to-do, log a meal, …) and Halo figures out the rest — no app to open, no tab to find.
 - **Talk to Halo (in-app voice)** — prefer to stay in the app? Tap **"Talk to Halo"** from any tab and speak a whole sentence. On-device speech recognition routes the command to the right tracker — no Siri needed, nothing leaves your phone.
+- **Patterns & Insights** — an on-device correlation engine surfaces cross-tracker trends ("your mood is higher on workout days"), plus an end-of-day reflection — all under Home → Insights.
+- **Diet preferences** — set your eating style and allergies in onboarding (and Settings); Halo tailors meal suggestions and never suggests an allergen.
+- **Control Center & Dynamic Island** — one-tap **Log Water** / **Talk to Halo** controls, and a live workout timer in the Dynamic Island.
 - **WidgetKit** — home-screen widgets for upcoming to-dos and the daily calorie ring.
-- **HealthKit** — meals write to Apple Health as dietary energy, and **workouts recorded on Apple Watch / Apple Fitness are read back into the Workouts tab** (read-only, merged with what you log in Halo).
+- **HealthKit** — meals (dietary energy) and weight write to Apple Health; **workouts, weight, and sleep recorded on Apple Watch / Apple Fitness are read back in** (merged read-only with what you log in Halo).
 - **App Group** — the app, the widgets, and the Siri intents share one SwiftData store (`group.com.sachi.halo`), so an entry created by Siri shows up everywhere immediately.
 
 ## What your voice can do
@@ -48,13 +54,17 @@ Control your whole day by talking — no menus, no tab-hopping.
 - **Multi-command in one breath** — stack actions in a single sentence: *"I drank water and finished the dishes"* runs both. The on-device model splits them; a rule-based router is the fallback.
 - **AI workout calorie burn** — *"log a 30 minute run"* estimates calories burned on-device (with a deterministic MET-based fallback) and stores it on the workout.
 - **AI meal suggestions** — *"what should I eat?"* suggests meals that fit your remaining calories for the day.
-- **AI weekly insights** — *"how was my week?"* turns your 7-day trends into a plain-language insight + tip (also shown in Diet → Insights).
-- **AI mood journaling** — *"I feel stressed about the deadline"* logs the mood, writes a short reflective note, and replies with a supportive line.
+- **AI weekly insights & patterns** — *"how was my week?"* turns your 7-day trends into a plain-language insight + tip, now with a cross-tracker pattern ("your mood is higher on workout days") from the on-device correlation engine (also shown in Home → Insights).
+- **AI mood journaling** — *"I feel stressed about the deadline"* logs the mood, writes a short reflective note, replies with a supportive line, and keeps your words as a journal entry.
+- **End-of-day reflection** — *"wrap up my day"* writes a warm recap across every tracker.
+- **History questions** — *"what did I eat Tuesday?"*, *"how much water yesterday?"*, *"how did I sleep last week?"* — answered with the exact figures for that day or week.
+- **Weight & sleep by voice** — *"log my weight 80 kilos"*, *"I slept 7 hours"* — with Apple Health reads merged in.
+- **Medication schedules** — *"remind me to take vitamin D at 9am every day"* sets a recurring reminder; *"did I take my pills today?"* reports adherence.
 - **Notes → to-dos** — *"pull to-dos from my last note"* extracts the action items and creates them as tasks.
 
 ## Downloads
-- If you have a Mac or a macOS-powered device AND have Xcode downloaded, you can host directly from the [source code](https://github.com/shankar-sachin/halo/archive/refs/tags/v0.2.0.tar.gz)
-- If you don't have macOS, don't have Xcode, or don't want to host locally, download the raw iOS .app file to test on your iPhone through the ZIP file at [halo-lifestyle.zip](https://github.com/shankar-sachin/halo/releases/download/v0.2.0/Halo-Lifestyle.zip), or you can download the build files [here](https://github.com/shankar-sachin/halo/releases/download/v0.2.0/Build.zip)
+- If you have a Mac or a macOS-powered device AND have Xcode downloaded, you can host directly from the [source code](https://github.com/shankar-sachin/halo/archive/refs/tags/v0.3.0.tar.gz)
+- If you don't have macOS, don't have Xcode, or don't want to host locally, download the raw iOS .app file to test on your iPhone through the ZIP file at [halo-lifestyle.zip](https://github.com/shankar-sachin/halo/releases/download/v0.3.0/Halo-Lifestyle.zip), or you can download the build files [here](https://github.com/shankar-sachin/halo/releases/download/v0.3.0/Build.zip)
 - If you want to go the long way, follow the instructions beneath
 
 ## Requirements
@@ -87,7 +97,8 @@ Voice features (speech recognition, Siri, microphone) and HealthKit require a re
 
 - **[documentation/BUILD.md](documentation/BUILD.md)** — build the app and run the simulator from the command line or Xcode, run tests, and run on a device.
 - **[documentation/RELEASE.md](documentation/RELEASE.md)** — versioning and the release/tagging process.
-- **[documentation/RELEASE_v0.2.0.md](documentation/RELEASE_v0.2.0.md)** — what's new in v0.2.0.
+- **[documentation/RELEASE_v0.3.0.md](documentation/RELEASE_v0.3.0.md)** — what's new in v0.3.0 (the whole-day release).
+- **[documentation/RELEASE_v0.2.0.md](documentation/RELEASE_v0.2.0.md)** — what's new in v0.2.0 (the on-device AI release).
 
 ## Project layout
 
@@ -98,7 +109,7 @@ Halo/
   HaloApp.swift             App entry point
   Models/                   SwiftData models (TodoItem, Note, DietEntry, …)
   Features/                 SwiftUI screens, grouped by tab
-  Services/                 Speech, voice routing, on-device AI (HaloIntelligence), calorie estimation, HealthKit, notifications
+  Services/                 Speech, voice routing, on-device AI (HaloIntelligence), CorrelationEngine, calorie estimation, HealthKit, notifications, LiveWorkoutController
   Intents/                  App Intents / Siri shortcuts
   Persistence/              Shared SwiftData ModelContainer
   DesignSystem/             Theme + glass UI components
@@ -119,9 +130,10 @@ docs/                       Landing page (GitHub Pages)
 ## Architecture notes
 
 - **SwiftUI + SwiftData** throughout. A single shared `ModelContainer` (`DataController.shared`) lives in an App Group container so the app, widgets, and Siri intents all read and write the same database.
-- **On-device voice + AI.** `SpeechRecognizer` captures speech; `VoiceCommandRouter.handle` routes it — AI-first via `HaloIntelligence` (Apple's `FoundationModels`), which can split one sentence into several commands, with a rule-based classifier as the offline fallback. All AI (intent routing, calorie/macro estimation, mood reflection, insights, suggestions, briefing wording, note→to-dos, workout-burn) is **on-device, availability-gated, and falls back to deterministic logic** — nothing leaves the phone. User-facing numbers are computed in Swift; the model only words them.
-- **Apple Health.** Meals write as dietary energy; Apple Watch / Apple Fitness workouts are read back into the Workouts tab (`HealthKitService`).
-- Settings are shared across targets via an App Group `UserDefaults` suite.
+- **On-device voice + AI.** `SpeechRecognizer` captures speech; `VoiceCommandRouter.handle` routes it — AI-first via `HaloIntelligence` (Apple's `FoundationModels`), which can split one sentence into several commands, with a rule-based classifier as the offline fallback. All AI (intent routing, calorie/macro estimation, mood reflection, insights, suggestions, briefing wording, note→to-dos, workout-burn, end-of-day reflection, pattern wording) is **on-device, availability-gated, and falls back to deterministic logic** — nothing leaves the phone. User-facing numbers are computed in Swift; the model only words them. Cross-tracker **patterns** are computed deterministically by `CorrelationEngine` with a minimum-sample guard.
+- **Apple Health.** Meals (dietary energy) and weight read/write; Apple Watch / Apple Fitness **workouts, weight, and sleep** are read back into their tabs (`HealthKitService`).
+- **Lock Screen presence.** Control Center controls and a workout Live Activity / Dynamic Island live in the widget extension; the app refreshes widgets after each change.
+- Settings (including diet preferences) are shared across targets via an App Group `UserDefaults` suite.
 
 ## License
 

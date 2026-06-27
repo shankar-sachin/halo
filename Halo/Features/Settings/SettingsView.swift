@@ -1,46 +1,20 @@
 import SwiftUI
 
+/// A hub that organizes preferences by tracker — each row opens a focused settings page.
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage(SettingsKey.dailyCalorieBudget, store: .shared) private var budget: Int = SettingsDefault.dailyCalorieBudget
-    @AppStorage(SettingsKey.syncToHealth, store: .shared) private var syncToHealth: Bool = SettingsDefault.syncToHealth
-    @AppStorage(SettingsKey.waterGoalML, store: .shared) private var waterGoal: Int = SettingsDefault.waterGoalML
-    @AppStorage(SettingsKey.listenInBackground, store: .shared) private var listenInBackground: Bool = SettingsDefault.listenInBackground
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Daily Calorie Budget") {
-                    Stepper(value: $budget, in: 1000...5000, step: 50) {
-                        HStack {
-                            Text("Target")
-                            Spacer()
-                            Text("\(budget) kcal")
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-                    }
+                Section("Trackers") {
+                    link("Diet", systemImage: "fork.knife", tint: Theme.dietTint) { DietSettingsView() }
+                    link("Water", systemImage: "drop.fill", tint: Theme.waterTint) { WaterSettingsView() }
+                    link("Sleep", systemImage: "bed.double.fill", tint: Theme.sleepTint) { SleepSettingsView() }
                 }
-                Section("Daily Water Goal") {
-                    Stepper(value: $waterGoal, in: 500...5000, step: 250) {
-                        HStack {
-                            Text("Target")
-                            Spacer()
-                            Text("\(waterGoal) ml")
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-                    }
-                }
-                Section {
-                    Toggle("Sync meals to Apple Health", isOn: $syncToHealth)
-                } footer: {
-                    Text("When on, each logged meal is written to Apple Health as dietary energy.")
-                }
-                Section {
-                    Toggle("Keep listening in background", isOn: $listenInBackground)
-                } footer: {
-                    Text("Lets you say “Halo, …” while the app is running in the background. Keeps the microphone active — the orange indicator stays on and it uses more battery. Stops if the app is force-quit.")
+                Section("Assistant") {
+                    link("Voice & Siri", systemImage: "mic.fill", tint: Theme.habitsTint) { AssistantSettingsView() }
+                    link("Daily Coach", systemImage: "sparkles", tint: Theme.moodTint) { CoachSettingsView() }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -54,6 +28,19 @@ struct SettingsView: View {
             }
         }
         .tint(Theme.dietTint)
+    }
+
+    private func link<Destination: View>(_ title: String, systemImage: String, tint: Color, @ViewBuilder destination: () -> Destination) -> some View {
+        NavigationLink {
+            destination()
+        } label: {
+            Label {
+                Text(title)
+            } icon: {
+                Image(systemName: systemImage)
+                    .foregroundStyle(tint)
+            }
+        }
     }
 }
 

@@ -18,6 +18,13 @@ enum SettingsKey {
     static let waterGoalML = "waterGoalML"
     static let listenInBackground = "listenInBackground"
     static let hasOnboarded = "hasOnboarded"
+    static let sleepGoalHours = "sleepGoalHours"
+    static let coachEnabled = "coachEnabled"
+    static let coachHour = "coachHour"
+    static let dietType = "dietType"
+    static let dietLikes = "dietLikes"
+    static let dietAvoid = "dietAvoid"
+    static let dietAllergies = "dietAllergies"
 }
 
 enum SettingsDefault {
@@ -25,6 +32,9 @@ enum SettingsDefault {
     static let syncToHealth = false
     static let waterGoalML = 2000
     static let listenInBackground = false
+    static let sleepGoalHours = 8
+    static let coachEnabled = false
+    static let coachHour = 8
 
     /// Registers defaults so non-UI code (App Intents, services) reads sensible values.
     static func register() {
@@ -33,6 +43,9 @@ enum SettingsDefault {
             SettingsKey.syncToHealth: syncToHealth,
             SettingsKey.waterGoalML: waterGoalML,
             SettingsKey.listenInBackground: listenInBackground,
+            SettingsKey.sleepGoalHours: sleepGoalHours,
+            SettingsKey.coachEnabled: coachEnabled,
+            SettingsKey.coachHour: coachHour,
         ])
     }
 
@@ -44,5 +57,10 @@ enum SettingsDefault {
     static var waterGoal: Int {
         let stored = UserDefaults.shared.integer(forKey: SettingsKey.waterGoalML)
         return stored == 0 ? waterGoalML : stored
+    }
+
+    static var sleepGoal: Int {
+        let stored = UserDefaults.shared.integer(forKey: SettingsKey.sleepGoalHours)
+        return stored == 0 ? sleepGoalHours : stored
     }
 }

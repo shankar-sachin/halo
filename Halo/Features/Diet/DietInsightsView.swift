@@ -36,7 +36,7 @@ struct DietInsightsView: View {
                     }
 
                     HStack(spacing: 16) {
-                        statCard(value: "\(streak)", label: streak == 1 ? "day streak" : "day streak",
+                        statCard(value: "\(streak)", label: streak == 1 ? "day streak" : "days streak",
                                  icon: "flame.fill", tint: .orange)
                         statCard(value: "\(average)", label: "avg kcal/day",
                                  icon: "chart.bar.fill", tint: Theme.dietTint)

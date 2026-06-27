@@ -6,6 +6,7 @@ struct MoodView: View {
     @Query(sort: \MoodEntry.loggedAt, order: .reverse) private var entries: [MoodEntry]
 
     @State private var note = ""
+    @State private var journal = ""
 
     var body: some View {
         NavigationStack {
@@ -45,6 +46,14 @@ struct MoodView: View {
                 TextField("Add a note (optional)", text: $note, axis: .vertical)
                     .lineLimit(1...3)
                     .textFieldStyle(.roundedBorder)
+                DisclosureGroup("Journal") {
+                    TextField("What's on your mind?", text: $journal, axis: .vertical)
+                        .lineLimit(3...8)
+                        .textFieldStyle(.roundedBorder)
+                        .padding(.top, 4)
+                }
+                .font(.subheadline)
+                .tint(Theme.moodTint)
             }
             .frame(maxWidth: .infinity)
         }
@@ -61,6 +70,12 @@ struct MoodView: View {
                             Text(entry.label).font(.subheadline.weight(.medium))
                             if !entry.note.isEmpty {
                                 Text(entry.note).font(.caption).foregroundStyle(.secondary)
+                            }
+                            if !entry.journal.isEmpty {
+                                Text(entry.journal)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.top, 2)
                             }
                             Text(entry.loggedAt.formatted(date: .abbreviated, time: .shortened))
                                 .font(.caption2).foregroundStyle(.secondary)
@@ -79,8 +94,13 @@ struct MoodView: View {
 
     private func log(_ rating: Int) {
         withAnimation {
-            context.insert(MoodEntry(rating: rating, note: note.trimmingCharacters(in: .whitespaces)))
+            context.insert(MoodEntry(
+                rating: rating,
+                note: note.trimmingCharacters(in: .whitespaces),
+                journal: journal.trimmingCharacters(in: .whitespaces)
+            ))
             note = ""
+            journal = ""
         }
     }
 }

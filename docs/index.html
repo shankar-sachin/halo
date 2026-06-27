@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Halo Lifestyle — One voice for your whole day</title>
-  <meta name="description" content="Halo Lifestyle is a voice-powered iOS 26 app that bundles eight everyday trackers behind one conversational assistant. Speak a command — it lands in the right place, on device." />
+  <meta name="description" content="Halo Lifestyle is a voice-powered iOS 26 app that bundles ten everyday trackers behind one conversational assistant and a Home dashboard. Speak a command — it lands in the right place, on device." />
   <meta property="og:title" content="Halo Lifestyle" />
-  <meta property="og:description" content="One conversational assistant fronting eight trackers: To-Do, Notes, Diet, Habits, Water, Workouts, Mood, and Pills." />
+  <meta property="og:description" content="One conversational assistant and a Home dashboard fronting ten trackers: To-Do, Notes, Diet, Habits, Water, Workouts, Mood, Pills, Weight, and Sleep." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="assets/halo.png" />
   <link rel="icon" type="image/png" href="assets/favicon.png" />
@@ -20,6 +20,8 @@
       --workouts: #ff735f;
       --mood:     #ff94c9;
       --pills:    #f2738c;
+      --weight:   #73c7c7;
+      --sleep:    #6b66c7;
       --ink:      #0c0e14;
       --ink-soft: #5b6172;
       --bg:       #f6f7fb;
@@ -224,9 +226,9 @@
   <header>
     <div class="wrap">
       <img class="hero-icon" src="assets/halo.png" alt="Halo Lifestyle app icon" />
-      <div class="badge"><span class="dot"></span> iOS 26 · On-device voice · SwiftUI + SwiftData</div>
+      <div class="badge"><span class="dot"></span> iOS 26 · On-device AI · SwiftUI + SwiftData</div>
       <h1>One voice for<br /><span class="grad">your whole day.</span></h1>
-      <p class="lede">Halo Lifestyle bundles eight everyday trackers behind a single conversational assistant. No tab-hopping — just talk.</p>
+      <p class="lede">Halo Lifestyle bundles ten everyday trackers behind a single conversational assistant and a glanceable Home dashboard. No tab-hopping — just talk.</p>
       <p class="voice-line">Say <em>“Halo, add a to-do,”</em> <em>“log a coffee,”</em> or <em>“I drank a glass of water”</em> — it lands in the right place, on device.</p>
       <div class="cta">
         <a class="btn btn-primary" href="#trackers">See what it tracks →</a>
@@ -244,9 +246,9 @@
   <section id="trackers">
     <div class="wrap">
       <div class="section-head reveal">
-        <div class="eyebrow">Eight trackers, one store</div>
+        <div class="eyebrow">Ten trackers, one store</div>
         <h2>Everything that makes up a day</h2>
-        <p>Each tracker has its own tab and tint — but they all share one SwiftData store, so an entry made by Siri shows up everywhere instantly.</p>
+        <p>Each tracker has its own tint — fronted by a Home dashboard that sums up your whole day — and they all share one SwiftData store, so an entry made by Siri shows up everywhere instantly.</p>
       </div>
       <div class="grid">
         <div class="card reveal" style="--c: var(--todo)">
@@ -268,10 +270,16 @@
           <div class="glyph">⚡</div><h3>Workouts</h3><p>Log sessions and keep moving.</p>
         </div>
         <div class="card reveal" style="--c: var(--mood)">
-          <div class="glyph">♥</div><h3>Mood</h3><p>A quick check-in on how you feel.</p>
+          <div class="glyph">♥</div><h3>Mood</h3><p>A quick check-in, with optional journaling.</p>
         </div>
         <div class="card reveal" style="--c: var(--pills)">
-          <div class="glyph">⊕</div><h3>Pills</h3><p>Medication and supplement logging.</p>
+          <div class="glyph">⊕</div><h3>Pills</h3><p>Logging plus recurring schedules and adherence.</p>
+        </div>
+        <div class="card reveal" style="--c: var(--weight)">
+          <div class="glyph">◷</div><h3>Weight</h3><p>Trend your body weight, synced with Apple Health.</p>
+        </div>
+        <div class="card reveal" style="--c: var(--sleep)">
+          <div class="glyph">☾</div><h3>Sleep</h3><p>Log nights or read Apple Watch sleep against your goal.</p>
         </div>
       </div>
     </div>
@@ -319,11 +327,27 @@
         </div>
         <div class="cap reveal">
           <h3><span class="pip" style="background:var(--diet)"></span> AI meal suggestions <span class="ai-badge">✨ AI</span></h3>
-          <p>“What should I eat?” — Halo suggests meals that fit the calories you have left for the day.</p>
+          <p>“What should I eat?” — Halo suggests meals that fit the calories you have left, tuned to your diet preferences and never an allergen.</p>
         </div>
         <div class="cap reveal">
           <h3><span class="pip" style="background:var(--diet)"></span> AI weekly insights <span class="ai-badge">✨ AI</span></h3>
-          <p>“How was my week?” turns your 7-day trends into a plain-language insight and a practical tip — also right inside Diet → Insights.</p>
+          <p>“How was my week?” turns your 7-day trends into a plain-language insight and a practical tip — also right inside Home → Insights.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--habits)"></span> Cross-tracker patterns <span class="ai-badge">✨ AI</span></h3>
+          <p>An on-device correlation engine connects your day — “your mood averages 4.2 on workout days vs 3.1 on rest days” — with a sample guard so noise never becomes a trend.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--sleep)"></span> End-of-day reflection <span class="ai-badge">✨ AI</span></h3>
+          <p>“Wrap up my day” writes a warm recap across every tracker, celebrating what went well and what to try tomorrow.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--water)"></span> Ask about the past</h3>
+          <p>“What did I eat Tuesday?”, “how much water yesterday?”, “how did I sleep last week?” — answered with the exact figures for that day or week.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--mood)"></span> Proactive daily coach</h3>
+          <p>An opt-in daily briefing nudge checks in on your whole day, at a time you choose.</p>
         </div>
         <div class="cap reveal">
           <h3><span class="pip" style="background:var(--mood)"></span> AI mood journaling <span class="ai-badge">✨ AI</span></h3>
@@ -359,7 +383,27 @@
         </div>
         <div class="cap reveal">
           <h3><span class="pip" style="background:var(--diet)"></span> HealthKit</h3>
-          <p>Dietary energy reads and writes keep your daily totals in sync with Apple Health.</p>
+          <p>Dietary energy and weight read &amp; write, and Apple Watch workouts, weight, and sleep read back in — all in sync with Apple Health.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--todo)"></span> Today dashboard</h3>
+          <p>A Home tab sums up every tracker at a glance — calorie ring, water, habits, to-dos, mood, workouts, pills, weight, and sleep — each a tap away.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--water)"></span> Control Center & Lock Screen</h3>
+          <p>One-tap controls to log a glass of water or talk to Halo, right from Control Center.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--workouts)"></span> Dynamic Island</h3>
+          <p>Start a live workout and watch the timer on the Lock Screen and Dynamic Island; finish to log it with an estimated burn.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--pills)"></span> Medication schedules</h3>
+          <p>Set recurring reminders for your pills and supplements, and track today's adherence at a glance.</p>
+        </div>
+        <div class="cap reveal">
+          <h3><span class="pip" style="background:var(--notes)"></span> Rich-text notes</h3>
+          <p>Format notes with bold, italic, and headings in the native iOS 26 editor.</p>
         </div>
         <div class="cap reveal">
           <h3><span class="pip" style="background:var(--habits)"></span> WidgetKit</h3>

@@ -8,6 +8,7 @@ enum WidgetStore {
         let schema = Schema([
             TodoItem.self, Note.self, DietEntry.self,
             Habit.self, WaterEntry.self, Workout.self, MoodEntry.self, PillLog.self,
+            WeightEntry.self, SleepEntry.self, MedicationSchedule.self,
         ])
         let config = ModelConfiguration(schema: schema, groupContainer: .identifier(AppGroup.identifier))
         if let container = try? ModelContainer(for: schema, configurations: [config]) {
@@ -17,6 +18,14 @@ enum WidgetStore {
         let memory = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         return try! ModelContainer(for: schema, configurations: [memory])
     }()
+
+    /// Logs one glass of water directly into the shared store (used by the Control Center control,
+    /// which runs in the widget process and can't reach the app's `CommandActions`).
+    static func logGlass() {
+        let context = ModelContext(container)
+        context.insert(WaterEntry(amountML: WaterEntry.glassML))
+        try? context.save()
+    }
 
     static func caloriesToday() -> Int {
         let context = ModelContext(container)

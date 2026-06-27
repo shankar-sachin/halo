@@ -34,7 +34,9 @@ enum HaloIntelligence {
         One action. Must be exactly one of: todo (add a task/reminder), note (save a note), \
         meal (log food eaten), complete (mark a task done), water (log water), workout (log exercise), \
         mood (log how they feel), habit (mark a habit done), addHabit (create a new habit), \
-        pill (log medication/supplement), query (answer a question about their data), \
+        pill (log a medication/supplement taken), weight (log body weight), sleep (log hours slept), \
+        pillSchedule (set up a recurring medication reminder, e.g. "remind me to take vitamin D at 9am every day"), \
+        reflect (wrap up / reflect on the day), query (answer a question about their data), \
         briefing (summarize today), insights (summarize the week/trends), suggest (suggest a meal), \
         delete (remove an entry), edit (change an existing entry), extractTodos (turn a note into to-dos).
         """)
@@ -186,13 +188,55 @@ enum HaloIntelligence {
     }
 
     @MainActor
-    static func suggestMeals(remaining: Int, context: String) async -> String? {
+    static func coachNudge(facts: String) async -> String? {
         await generateText(
             instructions: """
-            You are a nutrition assistant. Suggest two or three concrete meal ideas that fit within \
-            the person's remaining calorie budget for today, with rough calorie counts. Keep it brief.
+            You are an upbeat daily coach. From today's figures, write one short, motivating sentence \
+            about where the day stands, then one concrete suggestion for the next best action. Keep \
+            all numbers exactly as given; do not invent any.
             """,
-            prompt: "Remaining budget: \(remaining) kcal. \(context)"
+            prompt: facts
+        )
+    }
+
+    @MainActor
+    static func reflectDay(facts: String) async -> String? {
+        await generateText(
+            instructions: """
+            You are a gentle end-of-day companion. From today's figures, write two or three warm, \
+            reflective sentences celebrating what went well and noting one kind thing to try tomorrow. \
+            Keep all numbers exactly as given; do not invent any. Be encouraging, never clinical.
+            """,
+            prompt: facts
+        )
+    }
+
+    @MainActor
+    static func correlationInsight(facts: String) async -> String? {
+        await generateText(
+            instructions: """
+            You are an insightful wellness coach. The facts list patterns already computed from the \
+            person's data. Pick the single most interesting one and explain it warmly in one or two \
+            sentences, then add a short encouraging suggestion. Do not invent numbers or patterns \
+            beyond those given.
+            """,
+            prompt: facts
+        )
+    }
+
+    @MainActor
+    static func suggestMeals(remaining: Int, dietContext: String, request: String) async -> String? {
+        // The diet profile is a hard constraint, so it lives in the instructions (which the model
+        // honors far more strictly) rather than the user prompt.
+        let dietLine = dietContext.isEmpty ? "" : "\n\nThe person's diet profile, which you must honor: \(dietContext)"
+        return await generateText(
+            instructions: """
+            You are a nutrition assistant. Suggest two or three concrete meal ideas that fit within \
+            the person's remaining calorie budget for today, with rough calorie counts. Keep it brief. \
+            Strictly honor their stated diet (e.g. vegetarian, vegan, pescatarian) and lean toward the \
+            foods they like. NEVER suggest a food they are allergic to or have said they dislike.\(dietLine)
+            """,
+            prompt: "Remaining budget: \(remaining) kcal.\(request.isEmpty ? "" : " They also asked: \(request)")"
         )
     }
 
@@ -204,6 +248,8 @@ enum HaloIntelligence {
         let token = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         switch token {
         case "addhabit", "add habit", "new habit": return .addHabit
+        case "pillschedule", "pill schedule", "medication schedule", "schedule": return .pillSchedule
+        case "reflect", "reflection", "wrap up": return .reflect
         case "todo", "to-do", "task": return .todo
         case "extracttodos", "extract todos", "extract", "extracttasks": return .extractTodos
         case "insight", "insights", "trends": return .insights

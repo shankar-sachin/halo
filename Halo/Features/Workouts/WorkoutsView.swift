@@ -7,6 +7,13 @@ struct WorkoutsView: View {
 
     @State private var showAdd = false
     @State private var healthWorkouts: [HealthWorkout] = []
+    @State private var live = LiveWorkoutController()
+
+    /// Quick-start options for a live workout (label, symbol).
+    private let liveOptions: [(type: String, symbol: String)] = [
+        ("Run", "figure.run"), ("Walk", "figure.walk"),
+        ("Cycling", "figure.outdoor.cycle"), ("Strength", "dumbbell.fill"),
+    ]
 
     /// A unified row backed by either a local `Workout` or an Apple Health workout.
     private struct Item: Identifiable {
@@ -33,23 +40,23 @@ struct WorkoutsView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if items.isEmpty {
-                    ContentUnavailableView(
-                        "No workouts yet",
-                        systemImage: "figure.run",
-                        description: Text("Log one with + or “Halo, log a 30 minute run” — your Apple Watch workouts show up here too.")
-                    )
-                } else {
-                    ScrollView {
-                        VStack(spacing: 12) {
-                            ForEach(items) { item in
-                                row(item)
-                            }
+            ScrollView {
+                VStack(spacing: 12) {
+                    liveCard
+                    if items.isEmpty {
+                        ContentUnavailableView(
+                            "No workouts yet",
+                            systemImage: "figure.run",
+                            description: Text("Log one with + or “Halo, log a 30 minute run” — your Apple Watch workouts show up here too.")
+                        )
+                        .padding(.top, 40)
+                    } else {
+                        ForEach(items) { item in
+                            row(item)
                         }
-                        .padding()
                     }
                 }
+                .padding()
             }
             .background(Theme.backdrop(Theme.workoutsTint))
             .navigationTitle("Workouts")
@@ -63,6 +70,48 @@ struct WorkoutsView: View {
             .refreshable { healthWorkouts = await HealthKitService.shared.recentWorkouts() }
         }
         .tint(Theme.workoutsTint)
+    }
+
+    @ViewBuilder private var liveCard: some View {
+        if live.isActive, let startedAt = live.startedAt, let type = live.activeType {
+            GlassCard(tint: Theme.workoutsTint) {
+                HStack(spacing: 14) {
+                    Image(systemName: "record.circle")
+                        .font(.title)
+                        .foregroundStyle(Theme.workoutsTint)
+                        .symbolEffect(.pulse)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(type) in progress").font(.body.weight(.semibold))
+                        Text(startedAt, style: .timer)
+                            .font(.title3.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Finish") {
+                        Task { await live.finish(in: context) }
+                    }
+                    .buttonStyle(.glassProminent)
+                    .tint(Theme.workoutsTint)
+                }
+            }
+        } else {
+            Menu {
+                ForEach(liveOptions, id: \.type) { option in
+                    Button {
+                        live.start(type: option.type, symbol: option.symbol)
+                    } label: {
+                        Label(option.type, systemImage: option.symbol)
+                    }
+                }
+            } label: {
+                GlassCard(tint: Theme.workoutsTint) {
+                    Label("Start a live workout", systemImage: "play.circle.fill")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Theme.workoutsTint)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
     }
 
     private func row(_ item: Item) -> some View {

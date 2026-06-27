@@ -5,12 +5,16 @@ import SwiftData
 final class MoodEntry {
     /// 1 (awful) … 5 (great).
     var rating: Int
+    /// A short caption shown in the timeline.
     var note: String
+    /// Optional long-form journal entry paired with this mood check-in.
+    var journal: String = ""
     var loggedAt: Date
 
-    init(rating: Int, note: String = "", loggedAt: Date = .now) {
+    init(rating: Int, note: String = "", journal: String = "", loggedAt: Date = .now) {
         self.rating = rating
         self.note = note
+        self.journal = journal
         self.loggedAt = loggedAt
     }
 

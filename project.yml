@@ -24,8 +24,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sachi.halo
         PRODUCT_NAME: Halo
-        MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "0.3.0"
+        CURRENT_PROJECT_VERSION: "2"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: Halo Lifestyle
@@ -45,11 +45,12 @@ targets:
       path: Halo/Info.plist
       properties:
         UILaunchScreen: {}
+        NSSupportsLiveActivities: true
         UIBackgroundModes:
           - audio
         CFBundleSpokenName: Halo
-        NSHealthUpdateUsageDescription: "Halo logs the calories of meals you record so they appear in the Health app."
-        NSHealthShareUsageDescription: "Halo reads your dietary energy and your workouts from Apple Health (including Apple Watch and Fitness) to keep your day in sync."
+        NSHealthUpdateUsageDescription: "Halo writes the meals and weigh-ins you record to the Health app so they stay in sync."
+        NSHealthShareUsageDescription: "Halo reads your dietary energy, workouts, body weight, and sleep from Apple Health (including Apple Watch and Fitness) to keep your day in sync."
         NSSiriUsageDescription: "Use Siri to add to-dos, notes, and meals by voice."
         NSMicrophoneUsageDescription: "Halo listens while the app is open so you can speak commands like “Halo, add a to-do.”"
         NSSpeechRecognitionUsageDescription: "Halo turns your spoken commands into to-dos, notes, and meals on device."
@@ -68,8 +69,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sachi.halo.widgets
         PRODUCT_NAME: HaloWidgets
-        MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "0.3.0"
+        CURRENT_PROJECT_VERSION: "2"
         SKIP_INSTALL: YES
     entitlements:
       path: HaloWidgets/HaloWidgets.entitlements
@@ -80,6 +81,8 @@ targets:
       path: HaloWidgets/Info.plist
       properties:
         CFBundleDisplayName: Halo
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
 

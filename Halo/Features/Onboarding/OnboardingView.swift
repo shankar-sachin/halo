@@ -6,7 +6,7 @@ struct OnboardingView: View {
     @AppStorage(SettingsKey.hasOnboarded, store: .shared) private var hasOnboarded = false
     @State private var page = 0
 
-    private let lastPage = 3
+    private let lastPage = 4
 
     var body: some View {
         ZStack {
@@ -16,8 +16,9 @@ struct OnboardingView: View {
                 TabView(selection: $page) {
                     WelcomePage().tag(0)
                     BigIdeaPage().tag(1)
-                    VoiceSetupPage().tag(2)
-                    CommandsPage().tag(3)
+                    DietPreferencesPage().tag(2)
+                    VoiceSetupPage().tag(3)
+                    CommandsPage().tag(4)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .always))
                 .animation(.smooth, value: page)
@@ -171,6 +172,54 @@ private struct BigIdeaPage: View {
                 withAnimation(.smooth) { index = (index + 1) % examples.count }
             }
         }
+    }
+}
+
+private struct DietPreferencesPage: View {
+    @AppStorage(SettingsKey.dietType, store: .shared) private var dietType: String = DietType.omnivore.rawValue
+    @AppStorage(SettingsKey.dietLikes, store: .shared) private var likes: String = ""
+    @AppStorage(SettingsKey.dietAllergies, store: .shared) private var allergies: String = ""
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer(minLength: 12)
+            HaloOrb(systemImage: "fork.knife")
+            Text("Your food, your way")
+                .font(.title.bold())
+            Text("Halo tailors meal ideas to how you eat.")
+                .font(.subheadline).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            ScrollView {
+                VStack(spacing: 14) {
+                    GlassCard(tint: Theme.dietTint) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Eating style").font(.subheadline.weight(.semibold))
+                            DietTypeChips(rawValue: $dietType)
+                        }
+                    }
+                    GlassCard(tint: Theme.dietTint) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Foods you love").font(.subheadline.weight(.semibold))
+                            TextField("e.g. pasta, berries, salmon", text: $likes, axis: .vertical)
+                                .lineLimit(1...3)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                    }
+                    GlassCard(tint: Theme.pillsTint) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Allergies").font(.subheadline.weight(.semibold))
+                            AllergenChips(allergies: $allergies)
+                        }
+                    }
+                }
+                .padding(.horizontal)
+            }
+            Text("You can change all of this later in Settings.")
+                .font(.footnote).foregroundStyle(.secondary)
+            Spacer(minLength: 4)
+        }
+        .padding()
     }
 }
 

@@ -1,33 +1,42 @@
 import SwiftUI
 
+/// Tabs in the root tab bar; the `Home` dashboard cards switch tabs via this.
+enum HomeTab: Hashable {
+    case home, todo, notes, diet, habits, water, workouts, mood, pills
+}
+
 struct RootTabView: View {
     @AppStorage(SettingsKey.hasOnboarded, store: .shared) private var hasOnboarded = false
     @State private var showVoiceMode = false
+    @State private var selection: HomeTab = .home
 
     var body: some View {
-        TabView {
-            Tab("To-Do", systemImage: "checklist") {
+        TabView(selection: $selection) {
+            Tab("Home", systemImage: "house.fill", value: .home) {
+                HomeView(selection: $selection)
+            }
+            Tab("To-Do", systemImage: "checklist", value: .todo) {
                 TodoListView()
             }
-            Tab("Notes", systemImage: "note.text") {
+            Tab("Notes", systemImage: "note.text", value: .notes) {
                 NotesListView()
             }
-            Tab("Diet", systemImage: "fork.knife") {
+            Tab("Diet", systemImage: "fork.knife", value: .diet) {
                 DietView()
             }
-            Tab("Habits", systemImage: "checkmark.seal") {
+            Tab("Habits", systemImage: "checkmark.seal", value: .habits) {
                 HabitsView()
             }
-            Tab("Water", systemImage: "drop.fill") {
+            Tab("Water", systemImage: "drop.fill", value: .water) {
                 WaterView()
             }
-            Tab("Workouts", systemImage: "figure.run") {
+            Tab("Workouts", systemImage: "figure.run", value: .workouts) {
                 WorkoutsView()
             }
-            Tab("Mood", systemImage: "face.smiling") {
+            Tab("Mood", systemImage: "face.smiling", value: .mood) {
                 MoodView()
             }
-            Tab("Pills", systemImage: "pills.fill") {
+            Tab("Pills", systemImage: "pills.fill", value: .pills) {
                 PillsView()
             }
         }

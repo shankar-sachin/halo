@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import WidgetKit
 
 /// Shared business logic behind both Siri App Intents and the in-app "Halo" voice mode.
 /// Each method takes a raw spoken phrase and returns a spoken-style confirmation string.
@@ -8,6 +9,11 @@ struct CommandActions {
     var context: ModelContext = DataController.shared.container.mainContext
 
     private let parser = DateTimeParser()
+
+    /// Refreshes widgets/controls after a data change so the Home Screen stays in sync.
+    private func reloadWidgets() {
+        WidgetCenter.shared.reloadAllTimelines()
+    }
 
     // MARK: - To-Do
 
@@ -20,6 +26,7 @@ struct CommandActions {
         let item = TodoItem(title: title.isEmpty ? text : title, dueDate: dueDate)
         context.insert(item)
         try? context.save()
+        reloadWidgets()
 
         if let dueDate {
             await NotificationService.shared.scheduleReminder(
@@ -54,6 +61,7 @@ struct CommandActions {
         item.isDone = true
         item.completedAt = completionTime
         try? context.save()
+        reloadWidgets()
         NotificationService.shared.cancelReminder(id: item.persistentModelID.storeIdentifier ?? "")
         RecurrenceEngine.scheduleNext(after: item, in: context)
 
@@ -91,6 +99,7 @@ struct CommandActions {
             carbs: estimate.carbs,
             fat: estimate.fat
         )
+        reloadWidgets()
 
         let remaining = max(SettingsDefault.budget - result.consumedToday, 0)
         if estimate.calories <= 0 {
@@ -108,6 +117,7 @@ struct CommandActions {
         let ml = VoiceParsing.waterML(from: raw)
         context.insert(WaterEntry(amountML: ml))
         try? context.save()
+        reloadWidgets()
         let total = todaysWater()
         return "Logged \(ml) ml of water — \(total) ml today."
     }
@@ -137,7 +147,8 @@ struct CommandActions {
     func logMood(_ raw: String) async -> String {
         // Prefer AI journaling (rating + reflective note + supportive reply); fall back to keywords.
         if let reflection = await HaloIntelligence.reflectMood(raw) {
-            context.insert(MoodEntry(rating: reflection.rating, note: reflection.note))
+            let journal = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            context.insert(MoodEntry(rating: reflection.rating, note: reflection.note, journal: journal))
             try? context.save()
             let reply = reflection.reply.isEmpty ? "" : " \(reflection.reply)"
             return "Logged your mood as \(MoodEntry.label(for: reflection.rating)) \(MoodEntry.emoji(for: reflection.rating)).\(reply)"
@@ -159,6 +170,75 @@ struct CommandActions {
         try? context.save()
         if parsed.purpose.isEmpty { return "Logged your \(parsed.name)." }
         return "Logged your \(parsed.name) for \(parsed.purpose)."
+    }
+
+    // MARK: - Weight
+
+    func logWeight(_ raw: String) async -> String {
+        guard let kg = VoiceParsing.weightKg(from: raw) else {
+            return "Tell me your weight, like “log my weight 80 kilos.”"
+        }
+        context.insert(WeightEntry(weightKg: kg))
+        try? context.save()
+        if UserDefaults.shared.bool(forKey: SettingsKey.syncToHealth) {
+            await HealthKitService.shared.saveWeight(kg: kg)
+        }
+        let lbs = Int((kg * 2.2046226218).rounded())
+        return "Logged your weight: \(Self.trimWeight(kg)) kg (\(lbs) lb)."
+    }
+
+    // MARK: - Sleep
+
+    func logSleep(_ raw: String) async -> String {
+        guard let hours = VoiceParsing.sleepHours(from: raw) else {
+            return "How long did you sleep? Try “I slept 7 hours.”"
+        }
+        context.insert(SleepEntry(hoursAsleep: hours))
+        try? context.save()
+        let entry = SleepEntry(hoursAsleep: hours)
+        let goal = SettingsDefault.sleepGoal
+        let note = hours >= Double(goal) ? " That hits your \(goal)h goal. 😴" : ""
+        return "Logged \(entry.label) of sleep.\(note)"
+    }
+
+    private static func trimWeight(_ kg: Double) -> String {
+        kg.rounded() == kg ? String(Int(kg)) : String(format: "%.1f", kg)
+    }
+
+    // MARK: - Medication schedules
+
+    func scheduleMedication(_ raw: String) async -> String {
+        let parsed = VoiceParsing.pill(from: raw)
+        guard !parsed.name.isEmpty else { return "Which medication should I schedule?" }
+        guard let due = parser.parseDate(from: raw) else {
+            return "When should I remind you? Try “remind me to take vitamin D at 9am every day.”"
+        }
+        let comps = Calendar.current.dateComponents([.hour, .minute], from: due)
+        let minutes = (comps.hour ?? 9) * 60 + (comps.minute ?? 0)
+
+        let schedule = MedicationSchedule(name: parsed.name, timesMinutesOfDay: [minutes])
+        context.insert(schedule)
+        try? context.save()
+
+        await NotificationService.shared.scheduleDailyReminder(
+            id: schedule.reminderIDs().first ?? UUID().uuidString,
+            title: "Time for \(parsed.name)",
+            body: "Tap to log it in Halo.",
+            hour: minutes / 60, minute: minutes % 60
+        )
+        let when = due.formatted(date: .omitted, time: .shortened)
+        return "I'll remind you to take \(parsed.name) every day at \(when)."
+    }
+
+    // MARK: - End-of-day reflection
+
+    /// A warm AI wrap-up of today across the trackers (falls back to the briefing list).
+    func reflectDay() async -> String {
+        let facts = await todayFacts()
+        if let reflection = await HaloIntelligence.reflectDay(facts: facts) {
+            return reflection
+        }
+        return (["Here's your day:"] + facts.split(separator: "\n").map(String.init)).joined(separator: "\n")
     }
 
     // MARK: - Habits
@@ -194,6 +274,12 @@ struct CommandActions {
     /// SwiftData — the AI only routes the question here, it never invents figures.
     func answer(_ raw: String) async -> String {
         let lower = raw.lowercased()
+
+        // History questions ("what did I eat Tuesday", "how much water yesterday") resolve a past
+        // interval and report the exact figure for that period.
+        if let interval = parser.pastInterval(from: lower) {
+            return historicalAnswer(lower: lower, interval: interval)
+        }
 
         if lower.contains("calorie") || lower.contains("budget") || lower.contains("eaten")
             || lower.contains("food") || lower.contains("diet") {
@@ -231,8 +317,28 @@ struct CommandActions {
         if lower.contains("pill") || lower.contains("medication") || lower.contains("vitamin") || lower.contains("supplement") {
             let (start, end) = Self.todayInterval()
             let pills = (try? context.fetch(FetchDescriptor<PillLog>(predicate: #Predicate { $0.loggedAt >= start && $0.loggedAt < end }))) ?? []
+            let schedules = (try? context.fetch(FetchDescriptor<MedicationSchedule>(predicate: #Predicate { $0.active }))) ?? []
+            if !schedules.isEmpty {
+                let takenNames = Set(pills.map { $0.name.lowercased() })
+                let due = schedules.flatMap { s in s.timesMinutesOfDay.map { _ in s.name } }
+                let missed = schedules.filter { !takenNames.contains($0.name.lowercased()) }.map(\.name)
+                if missed.isEmpty {
+                    return "You've taken all \(due.count) scheduled dose\(due.count == 1 ? "" : "s") today. ✅"
+                }
+                return "You've logged \(pills.count) of \(due.count) scheduled today. Still due: \(missed.joined(separator: ", "))."
+            }
             guard !pills.isEmpty else { return "No pills logged today." }
             return "You've logged \(pills.count) today: \(pills.map(\.name).joined(separator: ", "))."
+        }
+        if lower.contains("weigh") {
+            var d = FetchDescriptor<WeightEntry>(sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]); d.fetchLimit = 1
+            guard let latest = (try? context.fetch(d))?.first else { return "You haven't logged your weight yet." }
+            return "Your latest weight is \(Self.trimWeight(latest.weightKg)) kg, logged \(latest.loggedAt.formatted(date: .abbreviated, time: .omitted))."
+        }
+        if lower.contains("sleep") || lower.contains("slept") {
+            var d = FetchDescriptor<SleepEntry>(sortBy: [SortDescriptor(\.loggedAt, order: .reverse)]); d.fetchLimit = 1
+            guard let latest = (try? context.fetch(d))?.first else { return "No sleep logged yet — try “I slept 7 hours.”" }
+            return "You last logged \(latest.label) of sleep."
         }
 
         // Default: open to-dos ("what's on my list", "what do I have to do").
@@ -243,10 +349,66 @@ struct CommandActions {
         return "You have \(open.count) open to-do\(open.count == 1 ? "" : "s"): \(preview)\(more)."
     }
 
+    /// Answers a question scoped to a past interval (computed exactly from SwiftData).
+    private func historicalAnswer(lower: String, interval: (start: Date, end: Date, label: String)) -> String {
+        let start = interval.start, end = interval.end, label = interval.label
+
+        if lower.contains("eat") || lower.contains("ate") || lower.contains("food") || lower.contains("meal") || lower.contains("calorie") {
+            let meals = (try? context.fetch(FetchDescriptor<DietEntry>(predicate: #Predicate { $0.loggedAt >= start && $0.loggedAt < end }))) ?? []
+            guard !meals.isEmpty else { return "You didn't log any meals \(label)." }
+            let total = meals.reduce(0) { $0 + $1.calories }
+            let foods = meals.prefix(4).map(\.foodText).joined(separator: ", ")
+            return "\(label.capitalized) you logged \(meals.count) meal\(meals.count == 1 ? "" : "s") totalling \(total) kcal: \(foods)."
+        }
+        if lower.contains("water") || lower.contains("drink") || lower.contains("drank") || lower.contains("hydrat") {
+            let water = (try? context.fetch(FetchDescriptor<WaterEntry>(predicate: #Predicate { $0.loggedAt >= start && $0.loggedAt < end }))) ?? []
+            let total = water.reduce(0) { $0 + $1.amountML }
+            return "You drank \(total) ml of water \(label)."
+        }
+        if lower.contains("workout") || lower.contains("exercise") || lower.contains("gym") {
+            let workouts = (try? context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.loggedAt >= start && $0.loggedAt < end }))) ?? []
+            guard !workouts.isEmpty else { return "No workouts logged \(label)." }
+            let minutes = workouts.reduce(0) { $0 + $1.durationMinutes }
+            return "\(label.capitalized) you logged \(workouts.count) workout\(workouts.count == 1 ? "" : "s") — \(minutes) minutes."
+        }
+        if lower.contains("mood") || lower.contains("feel") {
+            let moods = (try? context.fetch(FetchDescriptor<MoodEntry>(predicate: #Predicate { $0.loggedAt >= start && $0.loggedAt < end }))) ?? []
+            guard !moods.isEmpty else { return "No mood logged \(label)." }
+            let avg = Double(moods.reduce(0) { $0 + $1.rating }) / Double(moods.count)
+            return "\(label.capitalized) your mood averaged \(MoodEntry.label(for: Int(avg.rounded()))) \(MoodEntry.emoji(for: Int(avg.rounded())))."
+        }
+        if lower.contains("sleep") || lower.contains("slept") {
+            let sleeps = (try? context.fetch(FetchDescriptor<SleepEntry>(predicate: #Predicate { $0.loggedAt >= start && $0.loggedAt < end }))) ?? []
+            guard !sleeps.isEmpty else { return "No sleep logged \(label)." }
+            let avg = sleeps.reduce(0.0) { $0 + $1.hoursAsleep } / Double(sleeps.count)
+            return "\(label.capitalized) you slept \(String(format: "%.1f", avg)) hours on average."
+        }
+        if lower.contains("pill") || lower.contains("medication") || lower.contains("vitamin") || lower.contains("supplement") {
+            let pills = (try? context.fetch(FetchDescriptor<PillLog>(predicate: #Predicate { $0.loggedAt >= start && $0.loggedAt < end }))) ?? []
+            guard !pills.isEmpty else { return "No pills logged \(label)." }
+            return "\(label.capitalized) you logged \(pills.count): \(pills.map(\.name).joined(separator: ", "))."
+        }
+        // Default: completed to-dos in that window.
+        let todos = (try? context.fetch(FetchDescriptor<TodoItem>())) ?? []
+        let done = todos.filter { ($0.completedAt.map { $0 >= start && $0 < end }) ?? false }
+        guard !done.isEmpty else { return "I can tell you about meals, water, workouts, mood, sleep, or pills \(label)." }
+        return "\(label.capitalized) you completed \(done.count) to-do\(done.count == 1 ? "" : "s"): \(done.prefix(4).map(\.title).joined(separator: ", "))."
+    }
+
     // MARK: - Daily briefing
 
     /// A spoken recap of today across the trackers.
     func dailyBriefing() async -> String {
+        let facts = await todayFacts()
+        // Let the on-device model phrase a warm recap from the exact figures; fall back to the list.
+        if let polished = await HaloIntelligence.polishBriefing(facts: facts) {
+            return polished
+        }
+        return (["Here's your day:"] + facts.split(separator: "\n").map(String.init)).joined(separator: "\n")
+    }
+
+    /// Newline-joined "today" figures across every tracker, shared by the briefing and reflection.
+    func todayFacts() async -> String {
         let consumed = MealLogger(context: context).consumedToday()
         let budget = SettingsDefault.budget
         let calLine = consumed > 0
@@ -265,11 +427,19 @@ struct CommandActions {
             lines.append("🔁 \(habits.filter { $0.isCompleted() }.count)/\(habits.count) habits done")
         }
 
-        // Let the on-device model phrase a warm recap from the exact figures; fall back to the list.
-        if let polished = await HaloIntelligence.polishBriefing(facts: lines.joined(separator: "\n")) {
-            return polished
+        let (start, end) = Self.todayInterval()
+        let workouts = (try? context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.loggedAt >= start && $0.loggedAt < end }))) ?? []
+        if !workouts.isEmpty {
+            lines.append("🏃 \(workouts.reduce(0) { $0 + $1.durationMinutes }) min of exercise")
         }
-        return (["Here's your day:"] + lines).joined(separator: "\n")
+
+        var moodDescriptor = FetchDescriptor<MoodEntry>(sortBy: [SortDescriptor(\.loggedAt, order: .reverse)])
+        moodDescriptor.fetchLimit = 1
+        if let mood = (try? context.fetch(moodDescriptor))?.first, Calendar.current.isDateInToday(mood.loggedAt) {
+            lines.append("\(mood.emoji) Mood: \(MoodEntry.label(for: mood.rating))")
+        }
+
+        return lines.joined(separator: "\n")
     }
 
     // MARK: - Weekly insights
@@ -293,14 +463,17 @@ struct CommandActions {
         Habits tracked: \(habits.count); best habit streak: \(bestStreak) days.
         """
 
+        let topPattern = CorrelationEngine.correlations(in: context).first
+
         if let insight = await HaloIntelligence.weeklyInsight(facts: facts) {
-            return insight
+            return topPattern.map { "\(insight)\n\n📊 \($0.headline)" } ?? insight
         }
         // Deterministic fallback.
         let vsBudget = avg == 0 ? "no meals logged yet" :
             (avg <= budget ? "averaging \(avg) kcal/day, under your \(budget) goal — nice work"
                            : "averaging \(avg) kcal/day, over your \(budget) goal")
-        return "This week: \(vsBudget). \(streak)-day logging streak\(bestStreak > 0 ? ", best habit streak \(bestStreak) days" : "")."
+        let base = "This week: \(vsBudget). \(streak)-day logging streak\(bestStreak > 0 ? ", best habit streak \(bestStreak) days" : "")."
+        return topPattern.map { "\(base)\n\n📊 \($0.headline)" } ?? base
     }
 
     // MARK: - Meal suggestions
@@ -310,14 +483,11 @@ struct CommandActions {
         let consumed = MealLogger(context: context).consumedToday()
         let remaining = max(SettingsDefault.budget - consumed, 0)
 
-        if let ideas = await HaloIntelligence.suggestMeals(remaining: remaining, context: raw) {
+        if let ideas = await HaloIntelligence.suggestMeals(remaining: remaining, dietContext: DietPreferences.aiContext, request: raw) {
             return ideas
         }
-        // Deterministic fallback keyed by remaining budget.
-        if remaining <= 0 { return "You're at your budget for today — maybe a light option like a herbal tea or some veg sticks. 🥕" }
-        if remaining < 300 { return "About \(remaining) kcal left — a greek yogurt with berries (~150) or a boiled egg and fruit (~200) would fit." }
-        if remaining < 600 { return "About \(remaining) kcal left — a chicken salad (~400) or a veggie wrap (~450) would fit nicely." }
-        return "You have \(remaining) kcal left — room for a salmon bowl (~550), a burrito (~600), or pasta with veg (~650)."
+        // Deterministic fallback — diet-aware and allergen-filtered (used in the simulator).
+        return MealSuggester.suggestion(dietType: DietPreferences.type, allergies: DietPreferences.allergies, remaining: remaining)
     }
 
     // MARK: - Notes → to-dos

@@ -7,7 +7,6 @@ struct DietView: View {
     @AppStorage(SettingsKey.dailyCalorieBudget, store: .shared) private var budget: Int = SettingsDefault.dailyCalorieBudget
 
     @State private var showAdd = false
-    @State private var showSettings = false
     @State private var showInsights = false
     @State private var editingEntry: DietEntry?
     @State private var suggestion: String?
@@ -57,11 +56,6 @@ struct DietView: View {
             .background(Theme.backdrop(Theme.dietTint))
             .navigationTitle("Diet")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { showSettings = true } label: {
-                        Image(systemName: "gearshape")
-                    }
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task {
@@ -93,9 +87,6 @@ struct DietView: View {
             }
             .sheet(isPresented: $showInsights) {
                 DietInsightsView()
-            }
-            .sheet(isPresented: $showSettings) {
-                SettingsView()
             }
             .alert("Meal idea", isPresented: Binding(get: { suggestion != nil }, set: { if !$0 { suggestion = nil } })) {
                 Button("OK", role: .cancel) { suggestion = nil }

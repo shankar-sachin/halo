@@ -6,6 +6,7 @@ import Foundation
 struct VoiceCommandRouter {
     enum Action: String {
         case todo, note, meal, complete, water, workout, mood, habit, addHabit, pill
+        case weight, sleep, pillSchedule, reflect
         case query, briefing, delete, edit, insights, suggest, extractTodos, unknown
 
         var systemImage: String {
@@ -19,6 +20,10 @@ struct VoiceCommandRouter {
             case .mood: "face.smiling"
             case .habit, .addHabit: "checkmark.seal"
             case .pill: "pills.fill"
+            case .weight: "scalemass"
+            case .sleep: "bed.double.fill"
+            case .pillSchedule: "alarm"
+            case .reflect: "moon.stars"
             case .query: "magnifyingglass"
             case .briefing: "sun.max"
             case .delete: "trash"
@@ -60,13 +65,18 @@ struct VoiceCommandRouter {
         if Self.isBriefing(lower) { return (.briefing, cleaned) }
         if Self.editPrefixes.contains(where: { lower.hasPrefix($0) }) { return (.edit, cleaned) }
         if Self.deletePrefixes.contains(where: { lower.hasPrefix($0) }) { return (.delete, cleaned) }
+        if Self.isReflect(lower) { return (.reflect, cleaned) }
         if Self.isQuery(lower) { return (.query, cleaned) }
 
+        let mentionsMed = lower.contains("pill") || lower.contains("medication") || lower.contains("medicine")
+            || lower.contains("supplement") || lower.contains("vitamin")
+
         // Signal-based detection for the trackers (parsers extract values from the full phrase).
-        if lower.contains("pill") || lower.contains("medication") || lower.contains("medicine")
-            || lower.contains("supplement") || lower.contains("vitamin") {
-            return (.pill, cleaned)
-        }
+        // A recurring "remind me to take X every day" sets up a schedule rather than a one-off log.
+        if mentionsMed && Self.isSchedule(lower) { return (.pillSchedule, cleaned) }
+        if mentionsMed { return (.pill, cleaned) }
+        if lower.contains("weigh") { return (.weight, cleaned) }
+        if lower.contains("slept") || (lower.contains("sleep") && Self.hasNumber(lower)) { return (.sleep, cleaned) }
         if lower.contains("habit") {
             let creating = ["add", "create", "new", "start", "track"].contains { lower.contains($0) }
             return (creating ? .addHabit : .habit, cleaned)
@@ -91,6 +101,21 @@ struct VoiceCommandRouter {
 
     private static let deletePrefixes = ["delete", "remove", "cancel", "get rid of", "clear"]
     private static let editPrefixes = ["change", "rename", "reschedule", "edit", "update", "move", "set the"]
+
+    private static func isSchedule(_ lower: String) -> Bool {
+        ["every day", "everyday", "each day", "daily", "schedule", "remind me to take", "remind me at"]
+            .contains { lower.contains($0) }
+    }
+
+    private static func isReflect(_ lower: String) -> Bool {
+        ["wrap up my day", "end of day", "end my day", "reflect on my day", "daily reflection",
+         "reflect on today", "wind down"].contains { lower.contains($0) }
+    }
+
+    private static func hasNumber(_ lower: String) -> Bool {
+        lower.contains { $0.isNumber } || ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+            .contains { lower.contains($0) }
+    }
 
     private static func isExtractTodos(_ lower: String) -> Bool {
         let phrases = ["pull to-dos", "pull todos", "extract to-dos", "extract todos", "extract tasks",
@@ -166,6 +191,10 @@ struct VoiceCommandRouter {
         case .habit: return await actions.completeHabit(payload)
         case .addHabit: return await actions.addHabit(payload)
         case .pill: return await actions.logPill(payload)
+        case .weight: return await actions.logWeight(payload)
+        case .sleep: return await actions.logSleep(payload)
+        case .pillSchedule: return await actions.scheduleMedication(payload)
+        case .reflect: return await actions.reflectDay()
         case .query: return await actions.answer(payload)
         case .briefing: return await actions.dailyBriefing()
         case .delete: return await actions.deleteEntry(payload)

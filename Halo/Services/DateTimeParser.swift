@@ -40,6 +40,58 @@ struct DateTimeParser {
         return clean(words.joined(separator: " "))
     }
 
+    /// Resolves a past day/week reference ("yesterday", "on Tuesday", "3 days ago", "last week") to a
+    /// half-open date interval plus a spoken label. Returns nil when no past reference is present.
+    func pastInterval(from text: String, referenceDate: Date = .now) -> (start: Date, end: Date, label: String)? {
+        let lower = text.lowercased()
+        let startOfToday = calendar.startOfDay(for: referenceDate)
+
+        func dayInterval(_ day: Date, _ label: String) -> (Date, Date, String) {
+            let start = calendar.startOfDay(for: day)
+            let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+            return (start, end, label)
+        }
+
+        if lower.contains("yesterday"), let y = calendar.date(byAdding: .day, value: -1, to: startOfToday) {
+            return dayInterval(y, "yesterday")
+        }
+        if lower.contains("last week"), let weekAgo = calendar.date(byAdding: .day, value: -7, to: startOfToday) {
+            return (weekAgo, startOfToday, "in the last week")
+        }
+        if lower.contains("this week"),
+           let weekAgo = calendar.date(byAdding: .day, value: -7, to: startOfToday),
+           let tomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) {
+            return (weekAgo, tomorrow, "this week")
+        }
+        if let n = daysAgo(in: lower), let day = calendar.date(byAdding: .day, value: -n, to: startOfToday) {
+            return dayInterval(day, n == 1 ? "yesterday" : "\(n) days ago")
+        }
+        let weekdays = ["sunday": 1, "monday": 2, "tuesday": 3, "wednesday": 4,
+                        "thursday": 5, "friday": 6, "saturday": 7]
+        for (name, weekday) in weekdays where lower.contains(name) {
+            if let day = mostRecentWeekday(weekday, onOrBefore: startOfToday) {
+                return dayInterval(day, "on \(name.capitalized)")
+            }
+        }
+        return nil
+    }
+
+    private func daysAgo(in lower: String) -> Int? {
+        guard let range = lower.range(of: #"(\d+)\s+days?\s+ago"#, options: .regularExpression) else { return nil }
+        let digits = lower[range].prefix { $0.isNumber }
+        return Int(digits)
+    }
+
+    /// The most recent date with the given weekday at or before `reference` (excluding today itself,
+    /// so "on Monday" asked on a Monday means last Monday).
+    private func mostRecentWeekday(_ weekday: Int, onOrBefore reference: Date) -> Date? {
+        for offset in 1...7 {
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: reference) else { continue }
+            if calendar.component(.weekday, from: day) == weekday { return day }
+        }
+        return nil
+    }
+
     // MARK: - Helpers
 
     /// NSDataDetector resolves bare times to *today*; if that time has already passed and the

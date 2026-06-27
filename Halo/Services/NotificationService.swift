@@ -63,4 +63,41 @@ struct NotificationService: Sendable {
     func cancelReminder(id: String) {
         center.removePendingNotificationRequests(withIdentifiers: [id])
     }
+
+    func cancelReminders(ids: [String]) {
+        center.removePendingNotificationRequests(withIdentifiers: ids)
+    }
+
+    /// Stable identifier for the single daily proactive-coach reminder.
+    static let coachReminderID = "halo-daily-coach"
+
+    /// Turns the daily coach briefing reminder on at the given hour (or off).
+    func scheduleDailyCoach(hour: Int) async {
+        await scheduleDailyReminder(
+            id: Self.coachReminderID,
+            title: "Your Halo briefing",
+            body: "Open Halo to see how your day's shaping up — and plan your next move.",
+            hour: hour, minute: 0
+        )
+    }
+
+    func cancelDailyCoach() {
+        cancelReminder(id: Self.coachReminderID)
+    }
+
+    /// Schedules a daily-repeating reminder at the given hour/minute (used for medication schedules
+    /// and the proactive coach).
+    func scheduleDailyReminder(id: String, title: String, body: String, hour: Int, minute: Int) async {
+        guard await requestAuthorizationIfNeeded() else { return }
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+
+        var components = DateComponents()
+        components.hour = hour
+        components.minute = minute
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        try? await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+    }
 }

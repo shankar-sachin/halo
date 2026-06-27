@@ -69,6 +69,40 @@ enum VoiceParsing {
         return words.joined(separator: " ")
     }
 
+    /// Body weight in kilograms from "log my weight 80 kg", "I weigh 176 pounds", "82.5 kilos".
+    /// Returns nil when no number is present. Pounds are converted to kg.
+    static func weightKg(from text: String) -> Double? {
+        let lower = text.lowercased()
+        guard let value = firstDecimal(in: lower) else { return nil }
+        let isPounds = lower.contains("pound") || lower.contains("lbs") || lower.contains("lb")
+        return isPounds ? value / 2.2046226218 : value
+    }
+
+    /// Hours of sleep from "I slept 7 hours", "8.5 hours of sleep", "slept for 6 and a half hours".
+    static func sleepHours(from text: String) -> Double? {
+        let lower = text.lowercased()
+        var hours = firstDecimal(in: lower) ?? 0
+        // "and a half" bumps a whole-number hour by 0.5.
+        if lower.contains("and a half") || lower.contains("half") { hours += 0.5 }
+        // Add explicit minutes if phrased "7 hours 30 minutes".
+        if let mins = firstNumber(in: lower, near: ["minute", "min"]) { hours += Double(mins) / 60 }
+        return hours > 0 ? min(hours, 24) : nil
+    }
+
+    /// First decimal or integer number anywhere in the text (e.g. "82.5", "176").
+    private static func firstDecimal(in text: String) -> Double? {
+        var current = ""
+        for char in text {
+            if char.isNumber || char == "." {
+                current.append(char)
+            } else if !current.isEmpty {
+                if let value = Double(current) { return value }
+                current = ""
+            }
+        }
+        return Double(current)
+    }
+
     private static func normalizeActivity(_ word: String) -> String {
         switch word {
         case "run", "running", "ran": "Run"

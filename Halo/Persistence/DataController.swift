@@ -19,6 +19,9 @@ final class DataController {
             Workout.self,
             MoodEntry.self,
             PillLog.self,
+            WeightEntry.self,
+            SleepEntry.self,
+            MedicationSchedule.self,
         ])
         let configuration = ModelConfiguration(
             schema: schema,

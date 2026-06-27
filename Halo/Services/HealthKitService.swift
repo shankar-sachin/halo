@@ -11,6 +11,20 @@ struct HealthWorkout: Identifiable, Sendable {
     let symbol: String
 }
 
+/// A body-weight sample read from Apple Health.
+struct HealthWeight: Identifiable, Sendable {
+    let id: UUID
+    let weightKg: Double
+    let date: Date
+}
+
+/// A night's sleep duration read from Apple Health (aggregated across asleep stages).
+struct HealthSleepNight: Identifiable, Sendable {
+    let id: UUID
+    let hoursAsleep: Double
+    let date: Date
+}
+
 /// Reads/writes Apple Health: writes logged meals as dietary energy, and reads workouts recorded
 /// by Apple Watch / Apple Fitness. `HKHealthStore` is documented as safe to use across threads.
 struct HealthKitService: @unchecked Sendable {
@@ -19,6 +33,8 @@ struct HealthKitService: @unchecked Sendable {
     private let store = HKHealthStore()
     private var energyType: HKQuantityType { HKQuantityType(.dietaryEnergyConsumed) }
     private var activeEnergyType: HKQuantityType { HKQuantityType(.activeEnergyBurned) }
+    private var bodyMassType: HKQuantityType { HKQuantityType(.bodyMass) }
+    private var sleepType: HKCategoryType { HKCategoryType(.sleepAnalysis) }
 
     var isAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
 
@@ -91,6 +107,96 @@ struct HealthKitService: @unchecked Sendable {
             store.execute(query)
         }
     }
+
+    // MARK: - Body weight (read + write)
+
+    /// Requests read+write access to body mass. Returns whether sharing is authorized.
+    @discardableResult
+    func requestWeightAuthorization() async -> Bool {
+        guard isAvailable else { return false }
+        do {
+            try await store.requestAuthorization(toShare: [bodyMassType], read: [bodyMassType])
+            return store.authorizationStatus(for: bodyMassType) == .sharingAuthorized
+        } catch {
+            return false
+        }
+    }
+
+    /// Saves a weight measurement (in kilograms) to Health. Silently no-ops if unavailable.
+    func saveWeight(kg: Double, at date: Date = .now) async {
+        guard isAvailable, kg > 0 else { return }
+        if store.authorizationStatus(for: bodyMassType) != .sharingAuthorized {
+            guard await requestWeightAuthorization() else { return }
+        }
+        let quantity = HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: kg)
+        let sample = HKQuantitySample(type: bodyMassType, quantity: quantity, start: date, end: date)
+        try? await store.save(sample)
+    }
+
+    /// Fetches recent body-weight samples from Apple Health, newest first.
+    func recentWeights(limit: Int = 30) async -> [HealthWeight] {
+        guard isAvailable, await requestWeightAuthorization() else { return [] }
+        let unit = HKUnit.gramUnit(with: .kilo)
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: bodyMassType, predicate: nil, limit: limit, sortDescriptors: [sort]) { _, samples, _ in
+                let mapped = ((samples as? [HKQuantitySample]) ?? []).map {
+                    HealthWeight(id: $0.uuid, weightKg: $0.quantity.doubleValue(for: unit), date: $0.startDate)
+                }
+                continuation.resume(returning: mapped)
+            }
+            store.execute(query)
+        }
+    }
+
+    // MARK: - Sleep (read)
+
+    /// Requests read access to sleep analysis. Read status can't be queried, so callers just query.
+    @discardableResult
+    func requestSleepAuthorization() async -> Bool {
+        guard isAvailable else { return false }
+        do {
+            try await store.requestAuthorization(toShare: [], read: [sleepType])
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Fetches sleep for the last `nights` nights, summed across asleep stages and bucketed by the
+    /// morning the user woke. Newest night first. Returns `[]` when unavailable or unauthorized.
+    func recentSleep(nights: Int = 14) async -> [HealthSleepNight] {
+        guard isAvailable, await requestSleepAuthorization() else { return [] }
+        let calendar = Calendar.current
+        let start = calendar.date(byAdding: .day, value: -(nights + 1), to: .now) ?? .now
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: .now, options: [])
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        let asleepValues = Self.asleepValues
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sort]) { _, samples, _ in
+                let categorySamples = (samples as? [HKCategorySample]) ?? []
+                // Sum "asleep" seconds per night, keyed by the day the sample ended (the morning).
+                var perNight: [Date: TimeInterval] = [:]
+                for sample in categorySamples where asleepValues.contains(sample.value) {
+                    let morning = calendar.startOfDay(for: sample.endDate)
+                    perNight[morning, default: 0] += sample.endDate.timeIntervalSince(sample.startDate)
+                }
+                let nights = perNight
+                    .map { HealthSleepNight(id: UUID(), hoursAsleep: $0.value / 3600, date: $0.key) }
+                    .sorted { $0.date > $1.date }
+                continuation.resume(returning: nights)
+            }
+            store.execute(query)
+        }
+    }
+
+    /// `HKCategoryValueSleepAnalysis` raw values that count as actually asleep (not "in bed"/"awake").
+    private static let asleepValues: Set<Int> = [
+        HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
+        HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+        HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
+        HKCategoryValueSleepAnalysis.asleepREM.rawValue,
+    ]
 
     private static func name(for type: HKWorkoutActivityType) -> String {
         switch type {

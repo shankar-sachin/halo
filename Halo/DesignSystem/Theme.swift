@@ -10,6 +10,8 @@ enum Theme {
     static let workoutsTint = Color(red: 1.0, green: 0.45, blue: 0.38)  // coral
     static let moodTint = Color(red: 1.0, green: 0.58, blue: 0.79)      // pink
     static let pillsTint = Color(red: 0.95, green: 0.45, blue: 0.55)    // rose
+    static let weightTint = Color(red: 0.45, green: 0.78, blue: 0.78)   // teal
+    static let sleepTint = Color(red: 0.42, green: 0.40, blue: 0.78)    // deep indigo
 
     /// Soft ambient background gradient that lets glass refraction read nicely.
     static func backdrop(_ tint: Color) -> some View {
