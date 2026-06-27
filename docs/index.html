@@ -244,7 +244,7 @@
     <section id="demo" class="reveal">
       <div class="devices">
         <div class="device reveal">
-          <video src="assets/demo.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Halo Lifestyle on iPhone — logging an entry by voice"></video>
+          <video src="assets/demo.mp4" data-rate="2" autoplay loop muted playsinline preload="metadata" aria-label="Halo Lifestyle on iPhone — logging an entry by voice"></video>
         </div>
         <div class="device device-ipad reveal">
           <video src="assets/demo-ipad.mp4" autoplay loop muted playsinline preload="metadata" aria-label="Halo Lifestyle on iPad"></video>
@@ -455,6 +455,16 @@
       });
     }, { threshold: 0.12 });
     document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+    // Apply per-video playback speed (playbackRate can't be set via HTML attribute,
+    // and resets on each loop, so reapply on load and on every play).
+    document.querySelectorAll('video[data-rate]').forEach((v) => {
+      const rate = parseFloat(v.dataset.rate);
+      const apply = () => { v.playbackRate = rate; };
+      apply();
+      v.addEventListener('loadedmetadata', apply);
+      v.addEventListener('play', apply);
+    });
   </script>
 </body>
 </html>

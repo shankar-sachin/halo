@@ -44,9 +44,27 @@ struct RootTabView: View {
             Button {
                 showVoiceMode = true
             } label: {
-                Label("Talk to Halo", systemImage: "mic.fill")
-                    .font(.callout.weight(.semibold))
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Theme.habitsTint, .purple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    Circle()
+                        .stroke(.white.opacity(0.55), lineWidth: 1.5)
+                        .padding(3)
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                .frame(width: 34, height: 34)
+                .shadow(color: .purple.opacity(0.35), radius: 6, y: 1)
+                .accessibilityLabel("Talk to Halo")
             }
+            .buttonStyle(.plain)
             .tint(.purple)
         }
         .sheet(isPresented: $showVoiceMode) {
