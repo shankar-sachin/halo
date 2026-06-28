@@ -10,9 +10,9 @@ enum VoiceParsing {
     /// Milliliters of water from phrases like "a glass", "two bottles", "500 ml", "a litre".
     static func waterML(from text: String) -> Int {
         let lower = text.lowercased()
-        // Explicit ml/liter amounts.
-        if let ml = firstNumber(in: lower, near: ["ml", "milliliter", "millilitre"]) { return ml }
-        if let liters = firstNumber(in: lower, near: ["liter", "litre", "l "]) { return liters * 1000 }
+        // Explicit ml/liter amounts (decimals allowed, e.g. "1.5 liters", "500.5 ml").
+        if let ml = firstDecimalNear(in: lower, near: ["ml", "milliliter", "millilitre"]) { return Int(ml) }
+        if let liters = firstDecimalNear(in: lower, near: ["liter", "litre", "l "]) { return Int(liters * 1000) }
 
         let count = leadingCount(in: lower)
         if lower.contains("bottle") { return count * 500 }
@@ -122,6 +122,18 @@ enum VoiceParsing {
         for (word, value) in words where text.contains(word) { return value }
         if let n = anyNumber(in: text) { return n }
         return 1
+    }
+
+    /// First decimal/integer appearing just before any of the given units (e.g. "1.5 liter").
+    private static func firstDecimalNear(in text: String, near units: [String]) -> Double? {
+        for unit in units {
+            guard let unitRange = text.range(of: unit) else { continue }
+            let prefix = text[text.startIndex..<unitRange.lowerBound]
+            let chars = prefix.reversed().prefix { $0.isNumber || $0 == "." || $0 == " " }
+            let number = String(chars.reversed()).trimmingCharacters(in: .whitespaces)
+            if let value = Double(number) { return value }
+        }
+        return nil
     }
 
     /// First integer appearing just before any of the given units.

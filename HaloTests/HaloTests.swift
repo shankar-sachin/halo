@@ -200,6 +200,11 @@ struct VoiceParsingTests {
         #expect(VoiceParsing.waterML(from: "a bottle of water") == 500)
         #expect(VoiceParsing.waterML(from: "500 ml of water") == 500)
         #expect(VoiceParsing.waterML(from: "two glasses") == 500)
+        #expect(VoiceParsing.waterML(from: "two bottles") == 1000)
+        // Decimal liter/ml amounts must not lose the fractional part.
+        #expect(VoiceParsing.waterML(from: "1.5 liters of water") == 1500)
+        #expect(VoiceParsing.waterML(from: "2 liters") == 2000)
+        #expect(VoiceParsing.waterML(from: "750.5 ml") == 750)
     }
 
     @Test func parsesWorkout() {

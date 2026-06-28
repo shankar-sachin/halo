@@ -32,7 +32,7 @@ A **Home** dashboard plus ten trackers, one shared data store:
 | **Mood** | Mood check-ins with optional **journaling** |
 | **Pills** | Medication / supplement logging, plus **recurring schedules & adherence** |
 | **Weight** | Body-weight logging with a trend chart, reading & writing **Apple Health** *(reachable from Home)* |
-| **Sleep** | Sleep logging and **Apple Watch / Apple Fitness** sleep, against your goal *(reachable from Home)* |
+| **Sleep** | Sleep logging and **Apple Watch / Apple Fitness** sleep, against your goal, with an on-device **AI Sleep Coach** *(reachable from Home)* |
 
 Plus:
 
@@ -60,6 +60,7 @@ Control your whole day by talking — no menus, no tab-hopping.
 - **AI meal suggestions** — *"what should I eat?"* suggests meals that fit your remaining calories for the day.
 - **AI weekly insights & patterns** — *"how was my week?"* turns your 7-day trends into a plain-language insight + tip, now with a cross-tracker pattern ("your mood is higher on workout days") from the on-device correlation engine (also shown in Home → Insights).
 - **AI mood journaling** — *"I feel stressed about the deadline"* logs the mood, writes a short reflective note, replies with a supportive line, and keeps your words as a journal entry.
+- **AI Sleep Coach** — open Sleep and tap **Get sleep tips** for a personalized recommendation from your last seven nights (your logs + Apple Watch sleep). Stats are computed in Swift; the model only words them, with a templated fallback when Apple Intelligence isn't available.
 - **End-of-day reflection** — *"wrap up my day"* writes a warm recap across every tracker.
 - **History questions** — *"what did I eat Tuesday?"*, *"how much water yesterday?"*, *"how did I sleep last week?"* — answered with the exact figures for that day or week.
 - **Weight & sleep by voice** — *"log my weight 80 kilos"*, *"I slept 7 hours"* — with Apple Health reads merged in.
@@ -67,8 +68,8 @@ Control your whole day by talking — no menus, no tab-hopping.
 - **Notes → to-dos** — *"pull to-dos from my last note"* extracts the action items and creates them as tasks.
 
 ## Downloads
-- If you have a Mac or a macOS-powered device AND have Xcode downloaded, you can host directly from the [source code](https://github.com/shankar-sachin/halo/archive/refs/tags/v0.3.0.tar.gz)
-- If you don't have macOS, don't have Xcode, or don't want to host locally, download the raw iOS .app file to test on your iPhone through the ZIP file at [halo-lifestyle.zip](https://github.com/shankar-sachin/halo/releases/download/v0.3.0/Halo-Lifestyle.zip), or you can download the build files [here](https://github.com/shankar-sachin/halo/releases/download/v0.3.0/Build.zip)
+- If you have a Mac or a macOS-powered device AND have Xcode downloaded, you can host directly from the [source code](https://github.com/shankar-sachin/halo/archive/refs/tags/v0.5.0.tar.gz)
+- If you don't have macOS, don't have Xcode, or don't want to host locally, download the raw iOS .app file to test on your iPhone through the ZIP file at [halo-lifestyle.zip](https://github.com/shankar-sachin/halo/releases/download/v0.5.0/Halo-Lifestyle.zip), or you can download the build files [here](https://github.com/shankar-sachin/halo/releases/download/v0.5.0/Build.zip)
 - If you want to go the long way, follow the instructions beneath
 
 ## Requirements
@@ -101,6 +102,8 @@ Voice features (speech recognition, Siri, microphone) and HealthKit require a re
 
 - **[documentation/BUILD.md](documentation/BUILD.md)** — build the app and run the simulator from the command line or Xcode, run tests, and run on a device.
 - **[documentation/RELEASE.md](documentation/RELEASE.md)** — versioning and the release/tagging process.
+- **[documentation/RELEASE_v0.5.0.md](documentation/RELEASE_v0.5.0.md)** — what's new in v0.5.0 (the Sleep Coach release).
+- **[documentation/RELEASE_v0.4.0.md](documentation/RELEASE_v0.4.0.md)** — what's new in v0.4.0 (the iPad / universal release).
 - **[documentation/RELEASE_v0.3.0.md](documentation/RELEASE_v0.3.0.md)** — what's new in v0.3.0 (the whole-day release).
 - **[documentation/RELEASE_v0.2.0.md](documentation/RELEASE_v0.2.0.md)** — what's new in v0.2.0 (the on-device AI release).
 
@@ -134,7 +137,7 @@ docs/                       Landing page (GitHub Pages)
 ## Architecture notes
 
 - **SwiftUI + SwiftData** throughout. A single shared `ModelContainer` (`DataController.shared`) lives in an App Group container so the app, widgets, and Siri intents all read and write the same database.
-- **On-device voice + AI.** `SpeechRecognizer` captures speech; `VoiceCommandRouter.handle` routes it — AI-first via `HaloIntelligence` (Apple's `FoundationModels`), which can split one sentence into several commands, with a rule-based classifier as the offline fallback. All AI (intent routing, calorie/macro estimation, mood reflection, insights, suggestions, briefing wording, note→to-dos, workout-burn, end-of-day reflection, pattern wording) is **on-device, availability-gated, and falls back to deterministic logic** — nothing leaves the phone. User-facing numbers are computed in Swift; the model only words them. Cross-tracker **patterns** are computed deterministically by `CorrelationEngine` with a minimum-sample guard.
+- **On-device voice + AI.** `SpeechRecognizer` captures speech; `VoiceCommandRouter.handle` routes it — AI-first via `HaloIntelligence` (Apple's `FoundationModels`), which can split one sentence into several commands, with a rule-based classifier as the offline fallback. All AI (intent routing, calorie/macro estimation, mood reflection, insights, suggestions, briefing wording, note→to-dos, workout-burn, end-of-day reflection, pattern wording, sleep coaching) is **on-device, availability-gated, and falls back to deterministic logic** — nothing leaves the phone. User-facing numbers are computed in Swift; the model only words them. Cross-tracker **patterns** are computed deterministically by `CorrelationEngine` with a minimum-sample guard.
 - **Apple Health.** Meals (dietary energy) and weight read/write; Apple Watch / Apple Fitness **workouts, weight, and sleep** are read back into their tabs (`HealthKitService`).
 - **Lock Screen presence.** Control Center controls and a workout Live Activity / Dynamic Island live in the widget extension; the app refreshes widgets after each change.
 - Settings (including diet preferences) are shared across targets via an App Group `UserDefaults` suite.

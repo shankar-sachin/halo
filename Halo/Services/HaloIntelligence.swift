@@ -225,6 +225,19 @@ enum HaloIntelligence {
     }
 
     @MainActor
+    static func sleepCoach(facts: String) async -> String? {
+        await generateText(
+            instructions: """
+            You are a supportive sleep coach. From the person's recent sleep stats, write one or two \
+            short sentences of insight plus one practical, actionable tip to sleep better (e.g. a \
+            steadier bedtime, winding down earlier, fewer screens). Be warm and specific. Keep all \
+            numbers exactly as given; do not invent any. Never give medical advice.
+            """,
+            prompt: facts
+        )
+    }
+
+    @MainActor
     static func suggestMeals(remaining: Int, dietContext: String, request: String) async -> String? {
         // The diet profile is a hard constraint, so it lives in the instructions (which the model
         // honors far more strictly) rather than the user prompt.

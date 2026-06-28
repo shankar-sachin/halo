@@ -179,7 +179,7 @@ struct HealthKitService: @unchecked Sendable {
                 var perNight: [Date: TimeInterval] = [:]
                 for sample in categorySamples where asleepValues.contains(sample.value) {
                     let morning = calendar.startOfDay(for: sample.endDate)
-                    perNight[morning, default: 0] += sample.endDate.timeIntervalSince(sample.startDate)
+                    perNight[morning, default: 0] += max(sample.endDate.timeIntervalSince(sample.startDate), 0)
                 }
                 let nights = perNight
                     .map { HealthSleepNight(id: UUID(), hoursAsleep: $0.value / 3600, date: $0.key) }

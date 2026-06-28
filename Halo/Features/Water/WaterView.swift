@@ -101,7 +101,7 @@ struct WaterView: View {
     }
 
     private var glasses: Int { Int((Double(consumed) / Double(WaterEntry.glassML)).rounded()) }
-    private var goalGlasses: Int { max(goal / WaterEntry.glassML, 1) }
+    private var goalGlasses: Int { max(Int((Double(goal) / Double(WaterEntry.glassML)).rounded()), 1) }
 }
 
 #Preview {

@@ -9,6 +9,8 @@ struct SleepView: View {
     @State private var healthNights: [HealthSleepNight] = []
     @State private var showAdd = false
     @State private var input = ""
+    @State private var coachTip: String?
+    @State private var loadingTip = false
 
     private struct Item: Identifiable {
         let id: String
@@ -43,6 +45,7 @@ struct SleepView: View {
                     ScrollView {
                         VStack(spacing: 16) {
                             averageCard
+                            coachCard
                             ForEach(items) { item in row(item) }
                         }
                         .padding()
@@ -89,6 +92,71 @@ struct SleepView: View {
                     .foregroundStyle(Theme.sleepTint)
             }
         }
+    }
+
+    // MARK: - Sleep coach (AI tip with a deterministic fallback)
+
+    private var coachCard: some View {
+        GlassCard(tint: Theme.sleepTint) {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Sleep Coach", systemImage: "sparkles").font(.headline).foregroundStyle(Theme.sleepTint)
+                if let coachTip {
+                    Text(coachTip).font(.subheadline)
+                } else {
+                    Text("Get a personalized tip based on your recent nights.")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                Button {
+                    Task { await loadCoach() }
+                } label: {
+                    if loadingTip {
+                        ProgressView()
+                    } else {
+                        Label(coachTip == nil ? "Get sleep tips" : "Refresh", systemImage: "moon.zzz.fill")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+                .buttonStyle(.glass)
+                .tint(Theme.sleepTint)
+                .disabled(loadingTip)
+            }
+        }
+    }
+
+    private func loadCoach() async {
+        loadingTip = true
+        let recent = Array(items.prefix(7))
+        coachTip = await HaloIntelligence.sleepCoach(facts: sleepFacts(recent)) ?? fallbackTip(recent)
+        loadingTip = false
+    }
+
+    /// Stats fed to the model — numbers are computed here so the model only words them.
+    private func sleepFacts(_ recent: [Item]) -> String {
+        let count = recent.count
+        let avg = recent.reduce(0) { $0 + $1.hours } / Double(count)
+        let met = recent.filter { $0.hours >= Double(goal) }.count
+        let shortest = recent.map(\.hours).min() ?? 0
+        let longest = recent.map(\.hours).max() ?? 0
+        return """
+        Sleep goal: \(goal) h/night.
+        Last \(count) night\(count == 1 ? "" : "s") averaged \(String(format: "%.1f", avg)) h.
+        \(met) of \(count) night\(count == 1 ? "" : "s") met the goal.
+        Shortest \(String(format: "%.1f", shortest)) h, longest \(String(format: "%.1f", longest)) h.
+        """
+    }
+
+    /// Templated tip used when Apple Intelligence is unavailable (e.g. the simulator).
+    private func fallbackTip(_ recent: [Item]) -> String {
+        let avg = recent.reduce(0) { $0 + $1.hours } / Double(recent.count)
+        let spread = (recent.map(\.hours).max() ?? 0) - (recent.map(\.hours).min() ?? 0)
+        let consistency = spread > 1.5
+            ? " Your nights vary by about \(String(format: "%.1f", spread)) h — a steadier schedule helps most."
+            : ""
+        if avg >= Double(goal) {
+            return "You're averaging \(String(format: "%.1f", avg)) h against your \(goal) h goal — great work. Keep a consistent bedtime to lock it in.\(consistency)"
+        }
+        let deficitMin = Int(((Double(goal) - avg) * 60).rounded())
+        return "You're averaging \(String(format: "%.1f", avg)) h, about \(deficitMin) min short of your \(goal) h goal. Try winding down and heading to bed a little earlier tonight.\(consistency)"
     }
 
     private func row(_ item: Item) -> some View {
