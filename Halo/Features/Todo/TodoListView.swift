@@ -19,42 +19,40 @@ struct TodoListView: View {
     private var done: [TodoItem] { filtered.filter { $0.isDone } }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if items.isEmpty {
-                    ContentUnavailableView(
-                        "No to-dos yet",
-                        systemImage: "checklist",
-                        description: Text("Tap + or say “Halo, add a to-do.”")
-                    )
-                } else if filtered.isEmpty {
-                    ContentUnavailableView.search(text: searchText)
-                } else {
-                    List {
-                        section("Overdue", overdue, tint: .red)
-                        section("To Do", open, tint: Theme.todoTint)
-                        section("Completed", done, tint: .secondary)
-                    }
-                    .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
+        Group {
+            if items.isEmpty {
+                ContentUnavailableView(
+                    "No to-dos yet",
+                    systemImage: "checklist",
+                    description: Text("Tap + or say “Halo, add a to-do.”")
+                )
+            } else if filtered.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+            } else {
+                List {
+                    section("Overdue", overdue, tint: .red)
+                    section("To Do", open, tint: Theme.todoTint)
+                    section("Completed", done, tint: .secondary)
+                }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+            }
+        }
+        .background(Theme.backdrop(Theme.todoTint))
+        .searchable(text: $searchText, prompt: "Search to-dos")
+        .navigationTitle("To-Do")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showAdd = true } label: {
+                    Image(systemName: "plus")
                 }
             }
-            .background(Theme.backdrop(Theme.todoTint))
-            .searchable(text: $searchText, prompt: "Search to-dos")
-            .navigationTitle("To-Do")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showAdd = true } label: {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
-            .sheet(isPresented: $showAdd) {
-                TodoEditView(item: nil)
-            }
-            .sheet(item: $editing) { item in
-                TodoEditView(item: item)
-            }
+        }
+        .sheet(isPresented: $showAdd) {
+            TodoEditView(item: nil)
+        }
+        .sheet(item: $editing) { item in
+            TodoEditView(item: item)
         }
         .tint(Theme.todoTint)
     }

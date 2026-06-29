@@ -4,8 +4,6 @@ import SwiftData
 /// The "Today" front door — a glanceable summary of every tracker. Each card deep-links
 /// into its tab via the shared `selection` binding owned by `RootTabView`.
 struct HomeView: View {
-    @Binding var selection: HomeTab
-
     @Query(sort: \DietEntry.loggedAt, order: .reverse) private var meals: [DietEntry]
     @Query(sort: \WaterEntry.loggedAt, order: .reverse) private var water: [WaterEntry]
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todos: [TodoItem]
@@ -74,7 +72,9 @@ struct HomeView: View {
     private var consumed: Int { meals.filter { Calendar.current.isDateInToday($0.loggedAt) }.reduce(0) { $0 + $1.calories } }
 
     private var calorieHero: some View {
-        Button { selection = .diet } label: {
+        NavigationLink {
+            DietView()
+        } label: {
             GlassCard(tint: Theme.dietTint) {
                 VStack(spacing: 4) {
                     CalorieRingView(consumed: consumed, budget: budget)
@@ -90,46 +90,46 @@ struct HomeView: View {
 
     private var todayWater: Int { water.filter { Calendar.current.isDateInToday($0.loggedAt) }.reduce(0) { $0 + $1.amountML } }
     private var waterCard: some View {
-        statCard(tint: Theme.waterTint, icon: "drop.fill", title: "Water",
-                 value: "\(todayWater)",
-                 caption: "of \(waterGoal) ml") { selection = .water }
+        navCard(tint: Theme.waterTint, icon: "drop.fill", title: "Water",
+                value: "\(todayWater)",
+                caption: "of \(waterGoal) ml") { WaterView() }
     }
 
     private var doneHabits: Int { habits.filter { $0.isCompleted() }.count }
     private var bestStreak: Int { habits.map(\.streak).max() ?? 0 }
     private var habitsCard: some View {
-        statCard(tint: Theme.habitsTint, icon: "checkmark.seal.fill", title: "Habits",
-                 value: habits.isEmpty ? "—" : "\(doneHabits)/\(habits.count)",
-                 caption: bestStreak > 0 ? "🔥 \(bestStreak) day streak" : "tap to start") { selection = .habits }
+        navCard(tint: Theme.habitsTint, icon: "checkmark.seal.fill", title: "Habits",
+                value: habits.isEmpty ? "—" : "\(doneHabits)/\(habits.count)",
+                caption: bestStreak > 0 ? "🔥 \(bestStreak) day streak" : "tap to start") { HabitsView() }
     }
 
     private var openTodos: [TodoItem] { todos.filter { !$0.isDone } }
     private var todoCard: some View {
-        statCard(tint: Theme.todoTint, icon: "checklist", title: "To-Do",
-                 value: "\(openTodos.count)",
-                 caption: openTodos.first.map { "next: \($0.title)" } ?? "all caught up") { selection = .todo }
+        navCard(tint: Theme.todoTint, icon: "checklist", title: "To-Do",
+                value: "\(openTodos.count)",
+                caption: openTodos.first.map { "next: \($0.title)" } ?? "all caught up") { TodoListView() }
     }
 
     private var moodCard: some View {
         let last = moods.first
-        return statCard(tint: Theme.moodTint, icon: "face.smiling.fill", title: "Mood",
-                        value: last?.emoji ?? "—",
-                        caption: last.map { MoodEntry.label(for: $0.rating) } ?? "tap to log") { selection = .mood }
+        return navCard(tint: Theme.moodTint, icon: "face.smiling.fill", title: "Mood",
+                       value: last?.emoji ?? "—",
+                       caption: last.map { MoodEntry.label(for: $0.rating) } ?? "tap to log") { MoodView() }
     }
 
     private var todayWorkouts: [Workout] { workouts.filter { Calendar.current.isDateInToday($0.loggedAt) } }
     private var workoutCard: some View {
         let minutes = todayWorkouts.reduce(0) { $0 + $1.durationMinutes }
-        return statCard(tint: Theme.workoutsTint, icon: "figure.run", title: "Workouts",
-                        value: todayWorkouts.isEmpty ? "—" : "\(minutes)m",
-                        caption: todayWorkouts.isEmpty ? "none today" : "\(todayWorkouts.count) logged") { selection = .workouts }
+        return navCard(tint: Theme.workoutsTint, icon: "figure.run", title: "Workouts",
+                       value: todayWorkouts.isEmpty ? "—" : "\(minutes)m",
+                       caption: todayWorkouts.isEmpty ? "none today" : "\(todayWorkouts.count) logged") { WorkoutsView() }
     }
 
     private var todayPills: [PillLog] { pills.filter { Calendar.current.isDateInToday($0.loggedAt) } }
     private var pillCard: some View {
-        statCard(tint: Theme.pillsTint, icon: "pills.fill", title: "Pills",
-                 value: todayPills.isEmpty ? "—" : "\(todayPills.count)",
-                 caption: todayPills.isEmpty ? "none today" : "taken today") { selection = .pills }
+        navCard(tint: Theme.pillsTint, icon: "pills.fill", title: "Pills",
+                value: todayPills.isEmpty ? "—" : "\(todayPills.count)",
+                caption: todayPills.isEmpty ? "none today" : "taken today") { PillsView() }
     }
 
     private var weightCard: some View {
@@ -159,13 +159,7 @@ struct HomeView: View {
             destination()
         } label: {
             cardBody(tint: tint, icon: icon, title: title, value: value, caption: caption)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func statCard(tint: Color, icon: String, title: String, value: String, caption: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            cardBody(tint: tint, icon: icon, title: title, value: value, caption: caption)
+                .contentShape(.rect(cornerRadius: 22))
         }
         .buttonStyle(.plain)
     }
@@ -199,6 +193,6 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView(selection: .constant(.home))
+    HomeView()
         .modelContainer(DataController.shared.container)
 }

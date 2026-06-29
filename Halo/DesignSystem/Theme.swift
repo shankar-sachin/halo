@@ -13,6 +13,12 @@ enum Theme {
     static let weightTint = Color(red: 0.45, green: 0.78, blue: 0.78)   // teal
     static let sleepTint = Color(red: 0.42, green: 0.40, blue: 0.78)    // deep indigo
 
+    // Category tints — reuse a representative tracker hue so each hub feels cohesive.
+    static let nutritionTint = dietTint     // Diet, Water
+    static let healthTint = workoutsTint     // Workouts, Weight, Sleep, Pills
+    static let mindTint = habitsTint          // Mood, Habits
+    static let organizeTint = todoTint        // To-Do, Notes
+
     /// Widest a column of content should grow to; keeps cards/charts readable on iPad.
     static let maxContentWidth: CGFloat = 680
 

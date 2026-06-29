@@ -9,37 +9,36 @@ struct HabitsView: View {
     @State private var newName = ""
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if habits.isEmpty {
-                    ContentUnavailableView(
-                        "No habits yet",
-                        systemImage: "checkmark.seal",
-                        description: Text("Tap + or say “Halo, add a habit to meditate.”")
-                    )
-                } else {
-                    ScrollView {
-                        VStack(spacing: 12) {
-                            ForEach(habits) { habit in
-                                habitRow(habit)
-                            }
+        Group {
+            if habits.isEmpty {
+                ContentUnavailableView(
+                    "No habits yet",
+                    systemImage: "checkmark.seal",
+                    description: Text("Tap + or say “Halo, add a habit to meditate.”")
+                )
+            } else {
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(habits) { habit in
+                            habitRow(habit)
                         }
-                        .padding()
                     }
+                    .padding()
+                    .readableWidth()
                 }
             }
-            .background(Theme.backdrop(Theme.habitsTint))
-            .navigationTitle("Habits")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showAdd = true } label: { Image(systemName: "plus") }
-                }
+        }
+        .background(Theme.backdrop(Theme.habitsTint))
+        .navigationTitle("Habits")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showAdd = true } label: { Image(systemName: "plus") }
             }
-            .alert("New Habit", isPresented: $showAdd) {
-                TextField("e.g. Meditate", text: $newName)
-                Button("Cancel", role: .cancel) { newName = "" }
-                Button("Add") { add() }
-            }
+        }
+        .alert("New Habit", isPresented: $showAdd) {
+            TextField("e.g. Meditate", text: $newName)
+            Button("Cancel", role: .cancel) { newName = "" }
+            Button("Add") { add() }
         }
         .tint(Theme.habitsTint)
     }

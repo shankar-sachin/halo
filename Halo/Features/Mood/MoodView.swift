@@ -9,19 +9,17 @@ struct MoodView: View {
     @State private var journal = ""
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    picker
-                    if !entries.isEmpty { history }
-                }
-                .padding()
-                .padding(.bottom, 30)
-                .readableWidth()
+        ScrollView {
+            VStack(spacing: 20) {
+                picker
+                if !entries.isEmpty { history }
             }
-            .background(Theme.backdrop(Theme.moodTint))
-            .navigationTitle("Mood")
+            .padding()
+            .padding(.bottom, 30)
+            .readableWidth()
         }
+        .background(Theme.backdrop(Theme.moodTint))
+        .navigationTitle("Mood")
         .tint(Theme.moodTint)
     }
 

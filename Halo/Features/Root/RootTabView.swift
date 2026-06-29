@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Tabs in the root tab bar; the `Home` dashboard cards switch tabs via this.
+/// Top-level destinations. Home is the dashboard; the rest are tracker *categories* whose hubs
+/// link into the individual trackers — keeping the bar within iOS's limit.
 enum HomeTab: Hashable {
-    case home, todo, notes, diet, habits, water, workouts, mood, pills
+    case home, nutrition, health, mind, organize
 }
 
 struct RootTabView: View {
@@ -13,33 +14,36 @@ struct RootTabView: View {
     var body: some View {
         TabView(selection: $selection) {
             Tab("Home", systemImage: "house.fill", value: .home) {
-                HomeView(selection: $selection)
+                HomeView()
             }
-            Tab("To-Do", systemImage: "checklist", value: .todo) {
-                TodoListView()
+            Tab("Nutrition", systemImage: "fork.knife", value: .nutrition) {
+                CategoryHubView(title: "Nutrition", tint: Theme.nutritionTint, links: [
+                    TrackerLink("Diet", systemImage: "fork.knife", tint: Theme.dietTint) { DietView() },
+                    TrackerLink("Water", systemImage: "drop.fill", tint: Theme.waterTint) { WaterView() },
+                ])
             }
-            Tab("Notes", systemImage: "note.text", value: .notes) {
-                NotesListView()
+            Tab("Health", systemImage: "heart.fill", value: .health) {
+                CategoryHubView(title: "Health", tint: Theme.healthTint, links: [
+                    TrackerLink("Workouts", systemImage: "figure.run", tint: Theme.workoutsTint) { WorkoutsView() },
+                    TrackerLink("Weight", systemImage: "scalemass", tint: Theme.weightTint) { WeightView() },
+                    TrackerLink("Sleep", systemImage: "bed.double.fill", tint: Theme.sleepTint) { SleepView() },
+                    TrackerLink("Pills", systemImage: "pills.fill", tint: Theme.pillsTint) { PillsView() },
+                ])
             }
-            Tab("Diet", systemImage: "fork.knife", value: .diet) {
-                DietView()
+            Tab("Mind", systemImage: "brain.head.profile", value: .mind) {
+                CategoryHubView(title: "Mind", tint: Theme.mindTint, links: [
+                    TrackerLink("Mood", systemImage: "face.smiling", tint: Theme.moodTint) { MoodView() },
+                    TrackerLink("Habits", systemImage: "checkmark.seal", tint: Theme.habitsTint) { HabitsView() },
+                ])
             }
-            Tab("Habits", systemImage: "checkmark.seal", value: .habits) {
-                HabitsView()
-            }
-            Tab("Water", systemImage: "drop.fill", value: .water) {
-                WaterView()
-            }
-            Tab("Workouts", systemImage: "figure.run", value: .workouts) {
-                WorkoutsView()
-            }
-            Tab("Mood", systemImage: "face.smiling", value: .mood) {
-                MoodView()
-            }
-            Tab("Pills", systemImage: "pills.fill", value: .pills) {
-                PillsView()
+            Tab("Organize", systemImage: "checklist", value: .organize) {
+                CategoryHubView(title: "Organize", tint: Theme.organizeTint, links: [
+                    TrackerLink("To-Do", systemImage: "checklist", tint: Theme.todoTint) { TodoListView() },
+                    TrackerLink("Notes", systemImage: "note.text", tint: Theme.notesTint) { NotesListView() },
+                ])
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .tabViewBottomAccessory {
             Button {
                 showVoiceMode = true

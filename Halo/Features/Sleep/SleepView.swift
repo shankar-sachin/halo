@@ -33,42 +33,40 @@ struct SleepView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if items.isEmpty {
-                    ContentUnavailableView(
-                        "No sleep logged",
-                        systemImage: "bed.double.fill",
-                        description: Text("Add a night with + or say “Halo, I slept 7 hours.” Apple Watch sleep shows up here too.")
-                    )
-                } else {
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            averageCard
-                            coachCard
-                            ForEach(items) { item in row(item) }
-                        }
-                        .padding()
-                        .readableWidth()
+        Group {
+            if items.isEmpty {
+                ContentUnavailableView(
+                    "No sleep logged",
+                    systemImage: "bed.double.fill",
+                    description: Text("Add a night with + or say “Halo, I slept 7 hours.” Apple Watch sleep shows up here too.")
+                )
+            } else {
+                ScrollView {
+                    VStack(spacing: 16) {
+                        averageCard
+                        coachCard
+                        ForEach(items) { item in row(item) }
                     }
+                    .padding()
+                    .readableWidth()
                 }
             }
-            .background(Theme.backdrop(Theme.sleepTint))
-            .navigationTitle("Sleep")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showAdd = true } label: { Image(systemName: "plus") }
-                }
-            }
-            .alert("Log Sleep", isPresented: $showAdd) {
-                TextField("e.g. 7.5", text: $input)
-                    .keyboardType(.decimalPad)
-                Button("Cancel", role: .cancel) { input = "" }
-                Button("Add") { add() }
-            } message: { Text("Enter hours slept.") }
-            .task { healthNights = await HealthKitService.shared.recentSleep() }
-            .refreshable { healthNights = await HealthKitService.shared.recentSleep() }
         }
+        .background(Theme.backdrop(Theme.sleepTint))
+        .navigationTitle("Sleep")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showAdd = true } label: { Image(systemName: "plus") }
+            }
+        }
+        .alert("Log Sleep", isPresented: $showAdd) {
+            TextField("e.g. 7.5", text: $input)
+                .keyboardType(.decimalPad)
+            Button("Cancel", role: .cancel) { input = "" }
+            Button("Add") { add() }
+        } message: { Text("Enter hours slept.") }
+        .task { healthNights = await HealthKitService.shared.recentSleep() }
+        .refreshable { healthNights = await HealthKitService.shared.recentSleep() }
         .tint(Theme.sleepTint)
     }
 

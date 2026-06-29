@@ -39,37 +39,35 @@ struct WorkoutsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 12) {
-                    liveCard
-                    if items.isEmpty {
-                        ContentUnavailableView(
-                            "No workouts yet",
-                            systemImage: "figure.run",
-                            description: Text("Log one with + or “Halo, log a 30 minute run” — your Apple Watch workouts show up here too.")
-                        )
-                        .padding(.top, 40)
-                    } else {
-                        ForEach(items) { item in
-                            row(item)
-                        }
+        ScrollView {
+            VStack(spacing: 12) {
+                liveCard
+                if items.isEmpty {
+                    ContentUnavailableView(
+                        "No workouts yet",
+                        systemImage: "figure.run",
+                        description: Text("Log one with + or “Halo, log a 30 minute run” — your Apple Watch workouts show up here too.")
+                    )
+                    .padding(.top, 40)
+                } else {
+                    ForEach(items) { item in
+                        row(item)
                     }
                 }
-                .padding()
-                .readableWidth()
             }
-            .background(Theme.backdrop(Theme.workoutsTint))
-            .navigationTitle("Workouts")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showAdd = true } label: { Image(systemName: "plus") }
-                }
-            }
-            .sheet(isPresented: $showAdd) { AddWorkoutView() }
-            .task { healthWorkouts = await HealthKitService.shared.recentWorkouts() }
-            .refreshable { healthWorkouts = await HealthKitService.shared.recentWorkouts() }
+            .padding()
+            .readableWidth()
         }
+        .background(Theme.backdrop(Theme.workoutsTint))
+        .navigationTitle("Workouts")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showAdd = true } label: { Image(systemName: "plus") }
+            }
+        }
+        .sheet(isPresented: $showAdd) { AddWorkoutView() }
+        .task { healthWorkouts = await HealthKitService.shared.recentWorkouts() }
+        .refreshable { healthWorkouts = await HealthKitService.shared.recentWorkouts() }
         .tint(Theme.workoutsTint)
     }
 

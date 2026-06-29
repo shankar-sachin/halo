@@ -24,8 +24,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sachi.halo
         PRODUCT_NAME: Halo
-        MARKETING_VERSION: "0.5.0"
-        CURRENT_PROJECT_VERSION: "4"
+        MARKETING_VERSION: "0.6.0"
+        CURRENT_PROJECT_VERSION: "5"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: Halo Lifestyle
@@ -74,8 +74,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sachi.halo.widgets
         PRODUCT_NAME: HaloWidgets
-        MARKETING_VERSION: "0.5.0"
-        CURRENT_PROJECT_VERSION: "4"
+        MARKETING_VERSION: "0.6.0"
+        CURRENT_PROJECT_VERSION: "5"
         SKIP_INSTALL: YES
     entitlements:
       path: HaloWidgets/HaloWidgets.entitlements

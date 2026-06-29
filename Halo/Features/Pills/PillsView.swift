@@ -14,48 +14,46 @@ struct PillsView: View {
     private var activeSchedules: [MedicationSchedule] { schedules.filter { $0.active } }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if pills.isEmpty && schedules.isEmpty {
-                    ContentUnavailableView(
-                        "No pills logged",
-                        systemImage: "pills.fill",
-                        description: Text("Tap + or say “Halo, I ate my digestion pill.”")
-                    )
-                } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            if !activeSchedules.isEmpty {
-                                sectionHeader("Schedule")
-                                ForEach(activeSchedules) { scheduleRow($0) }
-                            }
-                            if !today.isEmpty {
-                                sectionHeader("Today")
-                                ForEach(today) { row($0) }
-                            }
-                            if !earlier.isEmpty {
-                                sectionHeader("Earlier")
-                                ForEach(earlier) { row($0) }
-                            }
+        Group {
+            if pills.isEmpty && schedules.isEmpty {
+                ContentUnavailableView(
+                    "No pills logged",
+                    systemImage: "pills.fill",
+                    description: Text("Tap + or say “Halo, I ate my digestion pill.”")
+                )
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if !activeSchedules.isEmpty {
+                            sectionHeader("Schedule")
+                            ForEach(activeSchedules) { scheduleRow($0) }
                         }
-                        .padding()
-                        .readableWidth()
+                        if !today.isEmpty {
+                            sectionHeader("Today")
+                            ForEach(today) { row($0) }
+                        }
+                        if !earlier.isEmpty {
+                            sectionHeader("Earlier")
+                            ForEach(earlier) { row($0) }
+                        }
                     }
+                    .padding()
+                    .readableWidth()
                 }
             }
-            .background(Theme.backdrop(Theme.pillsTint))
-            .navigationTitle("Pills")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button { showAdd = true } label: { Label("Log a pill", systemImage: "pills") }
-                        Button { showAddSchedule = true } label: { Label("Add a schedule", systemImage: "alarm") }
-                    } label: { Image(systemName: "plus") }
-                }
-            }
-            .sheet(isPresented: $showAdd) { AddPillView() }
-            .sheet(isPresented: $showAddSchedule) { AddMedicationScheduleView() }
         }
+        .background(Theme.backdrop(Theme.pillsTint))
+        .navigationTitle("Pills")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button { showAdd = true } label: { Label("Log a pill", systemImage: "pills") }
+                    Button { showAddSchedule = true } label: { Label("Add a schedule", systemImage: "alarm") }
+                } label: { Image(systemName: "plus") }
+            }
+        }
+        .sheet(isPresented: $showAdd) { AddPillView() }
+        .sheet(isPresented: $showAddSchedule) { AddMedicationScheduleView() }
         .tint(Theme.pillsTint)
     }
 

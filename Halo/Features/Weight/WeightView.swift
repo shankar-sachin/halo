@@ -29,41 +29,39 @@ struct WeightView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if items.isEmpty {
-                    ContentUnavailableView(
-                        "No weigh-ins yet",
-                        systemImage: "scalemass",
-                        description: Text("Add one with + or say “Halo, log my weight 80 kilos.”")
-                    )
-                } else {
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            if items.count > 1 { trendCard }
-                            ForEach(items) { item in row(item) }
-                        }
-                        .padding()
-                        .readableWidth()
+        Group {
+            if items.isEmpty {
+                ContentUnavailableView(
+                    "No weigh-ins yet",
+                    systemImage: "scalemass",
+                    description: Text("Add one with + or say “Halo, log my weight 80 kilos.”")
+                )
+            } else {
+                ScrollView {
+                    VStack(spacing: 16) {
+                        if items.count > 1 { trendCard }
+                        ForEach(items) { item in row(item) }
                     }
+                    .padding()
+                    .readableWidth()
                 }
             }
-            .background(Theme.backdrop(Theme.weightTint))
-            .navigationTitle("Weight")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showAdd = true } label: { Image(systemName: "plus") }
-                }
-            }
-            .alert("Log Weight", isPresented: $showAdd) {
-                TextField("e.g. 80", text: $input)
-                    .keyboardType(.decimalPad)
-                Button("Cancel", role: .cancel) { input = "" }
-                Button("Add") { add() }
-            } message: { Text("Enter your weight in kilograms.") }
-            .task { healthWeights = await HealthKitService.shared.recentWeights() }
-            .refreshable { healthWeights = await HealthKitService.shared.recentWeights() }
         }
+        .background(Theme.backdrop(Theme.weightTint))
+        .navigationTitle("Weight")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showAdd = true } label: { Image(systemName: "plus") }
+            }
+        }
+        .alert("Log Weight", isPresented: $showAdd) {
+            TextField("e.g. 80", text: $input)
+                .keyboardType(.decimalPad)
+            Button("Cancel", role: .cancel) { input = "" }
+            Button("Add") { add() }
+        } message: { Text("Enter your weight in kilograms.") }
+        .task { healthWeights = await HealthKitService.shared.recentWeights() }
+        .refreshable { healthWeights = await HealthKitService.shared.recentWeights() }
         .tint(Theme.weightTint)
     }
 

@@ -3,14 +3,18 @@ import SwiftUI
 /// A rounded container that adopts the iOS 26 Liquid Glass material.
 struct GlassCard<Content: View>: View {
     var tint: Color? = nil
+    /// When `true`, the glass reacts to touch with the interactive Liquid Glass animation —
+    /// use it for whole-card tappable rows (e.g. category hub links).
+    var interactive: Bool = false
     @ViewBuilder var content: Content
 
     var body: some View {
+        let glass = tint.map { Glass.regular.tint($0.opacity(0.18)) } ?? Glass.regular
         content
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .glassEffect(
-                tint.map { Glass.regular.tint($0.opacity(0.18)) } ?? Glass.regular,
+                interactive ? glass.interactive() : glass,
                 in: .rect(cornerRadius: 22)
             )
     }

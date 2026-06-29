@@ -13,20 +13,18 @@ struct WaterView: View {
     private var fraction: Double { goal > 0 ? min(Double(consumed) / Double(goal), 1) : 0 }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    progress
-                    quickAdd
-                    if !todayEntries.isEmpty { history }
-                }
-                .padding()
-                .padding(.bottom, 30)
-                .readableWidth()
+        ScrollView {
+            VStack(spacing: 20) {
+                progress
+                quickAdd
+                if !todayEntries.isEmpty { history }
             }
-            .background(Theme.backdrop(Theme.waterTint))
-            .navigationTitle("Water")
+            .padding()
+            .padding(.bottom, 30)
+            .readableWidth()
         }
+        .background(Theme.backdrop(Theme.waterTint))
+        .navigationTitle("Water")
         .tint(Theme.waterTint)
     }
 

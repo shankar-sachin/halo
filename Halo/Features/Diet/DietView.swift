@@ -20,80 +20,78 @@ struct DietView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    CalorieRingView(consumed: consumedToday, budget: budget)
-                        .padding(.top, 8)
+        ScrollView {
+            VStack(spacing: 20) {
+                CalorieRingView(consumed: consumedToday, budget: budget)
+                    .padding(.top, 8)
 
-                    if todayEntries.isEmpty {
-                        ContentUnavailableView(
-                            "No meals logged today",
-                            systemImage: "fork.knife",
-                            description: Text("Tap + or say “Halo, log a meal.”")
-                        )
-                        .padding(.top, 40)
-                    } else {
-                        VStack(spacing: 12) {
-                            ForEach(todayEntries) { entry in
-                                DietEntryRow(entry: entry)
-                                    .onTapGesture { editingEntry = entry }
-                                    .contextMenu {
-                                        Button { editingEntry = entry } label: {
-                                            Label("Edit", systemImage: "pencil")
-                                        }
-                                        Button(role: .destructive) {
-                                            context.delete(entry)
-                                        } label: { Label("Delete", systemImage: "trash") }
+                if todayEntries.isEmpty {
+                    ContentUnavailableView(
+                        "No meals logged today",
+                        systemImage: "fork.knife",
+                        description: Text("Tap + or say “Halo, log a meal.”")
+                    )
+                    .padding(.top, 40)
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(todayEntries) { entry in
+                            DietEntryRow(entry: entry)
+                                .onTapGesture { editingEntry = entry }
+                                .contextMenu {
+                                    Button { editingEntry = entry } label: {
+                                        Label("Edit", systemImage: "pencil")
                                     }
-                            }
+                                    Button(role: .destructive) {
+                                        context.delete(entry)
+                                    } label: { Label("Delete", systemImage: "trash") }
+                                }
                         }
-                        .padding(.horizontal)
                     }
-                }
-                .padding(.bottom, 40)
-                .readableWidth()
-            }
-            .background(Theme.backdrop(Theme.dietTint))
-            .navigationTitle("Diet")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task {
-                            loadingSuggestion = true
-                            suggestion = await CommandActions(context: context).suggestMeal("")
-                            loadingSuggestion = false
-                        }
-                    } label: {
-                        Image(systemName: loadingSuggestion ? "lightbulb.circle" : "lightbulb")
-                    }
-                    .disabled(loadingSuggestion)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showInsights = true } label: {
-                        Image(systemName: "chart.bar.xaxis")
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showAdd = true } label: {
-                        Image(systemName: "plus")
-                    }
+                    .padding(.horizontal)
                 }
             }
-            .sheet(isPresented: $showAdd) {
-                LogMealView()
+            .padding(.bottom, 40)
+            .readableWidth()
+        }
+        .background(Theme.backdrop(Theme.dietTint))
+        .navigationTitle("Diet")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task {
+                        loadingSuggestion = true
+                        suggestion = await CommandActions(context: context).suggestMeal("")
+                        loadingSuggestion = false
+                    }
+                } label: {
+                    Image(systemName: loadingSuggestion ? "lightbulb.circle" : "lightbulb")
+                }
+                .disabled(loadingSuggestion)
             }
-            .sheet(item: $editingEntry) { entry in
-                LogMealView(entry: entry)
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showInsights = true } label: {
+                    Image(systemName: "chart.bar.xaxis")
+                }
             }
-            .sheet(isPresented: $showInsights) {
-                DietInsightsView()
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showAdd = true } label: {
+                    Image(systemName: "plus")
+                }
             }
-            .alert("Meal idea", isPresented: Binding(get: { suggestion != nil }, set: { if !$0 { suggestion = nil } })) {
-                Button("OK", role: .cancel) { suggestion = nil }
-            } message: {
-                Text(suggestion ?? "")
-            }
+        }
+        .sheet(isPresented: $showAdd) {
+            LogMealView()
+        }
+        .sheet(item: $editingEntry) { entry in
+            LogMealView(entry: entry)
+        }
+        .sheet(isPresented: $showInsights) {
+            DietInsightsView()
+        }
+        .alert("Meal idea", isPresented: Binding(get: { suggestion != nil }, set: { if !$0 { suggestion = nil } })) {
+            Button("OK", role: .cancel) { suggestion = nil }
+        } message: {
+            Text(suggestion ?? "")
         }
         .tint(Theme.dietTint)
     }
