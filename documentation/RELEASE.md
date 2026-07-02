@@ -15,10 +15,26 @@ settings:
 
 After editing, run `xcodegen generate`.
 
+## Scripted (recommended)
+
+Two Ruby scripts (macOS system Ruby, no gems) automate the mechanical half:
+
+```bash
+ruby scripts/release.rb 0.9.0            # bump project.yml (+ build number), update README
+                                         # download links + docs list, update the landing-page
+                                         # badge, scaffold documentation/RELEASE_v0.9.0.md,
+                                         # run xcodegen, and verify. --dry-run to preview.
+ruby scripts/verify_release.rb           # standalone consistency check (also run by release.rb):
+                                         # versions agree everywhere, notes exist, icon is
+                                         # 1024x1024 with no alpha. Exits non-zero on failure.
+```
+
+Writing the actual release notes, committing, and tagging stay manual — steps 2–6 below.
+
 ## Steps
 
-1. **Bump the version** in `project.yml` (`MARKETING_VERSION`, and increment `CURRENT_PROJECT_VERSION`),
-   then `xcodegen generate`.
+1. **Bump the version** — `ruby scripts/release.rb X.Y.Z` (or by hand in `project.yml`:
+   `MARKETING_VERSION`, increment `CURRENT_PROJECT_VERSION`, then `xcodegen generate`).
 2. **Verify** the build and tests are green (see [BUILD.md](BUILD.md)):
    ```bash
    xcodebuild -project Halo.xcodeproj -scheme Halo -sdk iphonesimulator \

@@ -70,8 +70,8 @@ Control your whole day by talking — no menus, no tab-hopping.
 - **Notes → to-dos** — *"pull to-dos from my last note"* extracts the action items and creates them as tasks (also a one-tap **Extract To-Dos** button in the note editor).
 
 ## Downloads
-- If you have a Mac or a macOS-powered device AND have Xcode downloaded, you can host directly from the [source code](https://github.com/shankar-sachin/halo/archive/refs/tags/v0.8.0.tar.gz)
-- If you don't have macOS, don't have Xcode, or don't want to host locally, download the raw iOS .app file to test on your iPhone through the ZIP file at [halo-lifestyle.zip](https://github.com/shankar-sachin/halo/releases/download/v0.8.0/Halo-Lifestyle.zip), or you can download the build files [here](https://github.com/shankar-sachin/halo/releases/download/v0.8.0/Build.zip)
+- If you have a Mac or a macOS-powered device AND have Xcode downloaded, you can host directly from the [source code](https://github.com/shankar-sachin/halo/archive/refs/tags/v0.8.1.tar.gz)
+- If you don't have macOS, don't have Xcode, or don't want to host locally, download the raw iOS .app file to test on your iPhone through the ZIP file at [halo-lifestyle.zip](https://github.com/shankar-sachin/halo/releases/download/v0.8.1/Halo-Lifestyle.zip), or you can download the build files [here](https://github.com/shankar-sachin/halo/releases/download/v0.8.1/Build.zip)
 - If you want to go the long way, follow the instructions beneath
 
 ## Requirements
@@ -104,6 +104,7 @@ Voice features (speech recognition, Siri, microphone) and HealthKit require a re
 
 - **[documentation/BUILD.md](documentation/BUILD.md)** — build the app and run the simulator from the command line or Xcode, run tests, and run on a device.
 - **[documentation/RELEASE.md](documentation/RELEASE.md)** — versioning and the release/tagging process.
+- **[documentation/RELEASE_v0.8.1.md](documentation/RELEASE_v0.8.1.md)** — what's new in v0.8.1 (the automation release).
 - **[documentation/RELEASE_v0.8.0.md](documentation/RELEASE_v0.8.0.md)** — what's new in v0.8.0 (the polish release).
 - **[documentation/RELEASE_v0.7.0.md](documentation/RELEASE_v0.7.0.md)** — what's new in v0.7.0 (the everywhere release).
 - **[documentation/RELEASE_v0.6.0.md](documentation/RELEASE_v0.6.0.md)** — what's new in v0.6.0 (the categories release).
@@ -129,6 +130,8 @@ Halo/
   Resources/                foods.json, Assets.xcassets (incl. AppIcon)
 HaloWidgets/                WidgetKit extension (shares Models + Theme + AppSettings)
 HaloTests/                  Unit tests
+scripts/                    Release automation (Ruby): release.rb bumps the version everywhere,
+                            verify_release.rb checks release consistency
 documentation/              BUILD.md, RELEASE.md, and per-version release notes
 docs/                       Landing page (GitHub Pages)
 ```
