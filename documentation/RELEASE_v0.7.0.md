@@ -1,4 +1,11 @@
-# Halo v0.7.0
+<div align="center">
+  <img src="https://github.com/shankar-sachin/halo/blob/main/docs/assets/halo.png" alt="Halo Icon" width="20%">
+
+  # Halo v0.7.0
+  ### With a new icon
+</div>
+
+### 🔗 [tinyurl.com/halo-voice](https://www.tinyurl.com/halo-voice)
 
 The **everywhere** release. Halo's trackers now meet you wherever you are: **Weight, Sleep, and
 Pills join Shortcuts/Siri** with dedicated intents, a new **Habit Streak widget** and two new
@@ -82,3 +89,5 @@ alcohol). Everything stays on-device with the same deterministic fallbacks; all 
 - Needs a real device to verify: the two new Control Center controls, the Activity card
   (the simulator has no step data), and the Apple Intelligence paths (the simulator exercises
   the deterministic fallbacks, which is what the tests cover).
+
+**Full Changelog**: https://github.com/shankar-sachin/halo/compare/v0.6.0...v0.7.0
