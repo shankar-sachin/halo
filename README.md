@@ -1,6 +1,7 @@
 <div align="center">
+<img src="https://github.com/shankar-sachin/halo/blob/main/assets/halo.png" alt="Halo Icon" width="20%"> 
 
-# Halo Lifestyle
+  # Halo Lifestyle
 
 **One voice for your whole day.** A voice-powered iOS 26 lifestyle app that bundles ten everyday trackers — behind one conversational assistant and a glanceable Home dashboard.
 
