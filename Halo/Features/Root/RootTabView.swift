@@ -60,9 +60,9 @@ struct RootTabView: View {
                     Circle()
                         .stroke(.white.opacity(0.55), lineWidth: 1.5)
                         .padding(3)
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 15, weight: .semibold))
+                    HaloWaveform()
                         .foregroundStyle(.white)
+                        .frame(width: 17, height: 15)
                 }
                 .frame(width: 34, height: 34)
                 .shadow(color: .purple.opacity(0.35), radius: 6, y: 1)

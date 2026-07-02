@@ -14,20 +14,17 @@ struct DietTypeChips: View {
                     rawValue = type.rawValue
                 } label: {
                     Label(type.label, systemImage: type.icon)
-                        .font(.subheadline.weight(.medium))
+                        .font(.subheadline.weight(selected ? .semibold : .medium))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
                         .glassEffect(
-                            selected ? Glass.regular.tint(Theme.dietTint.opacity(0.35)).interactive()
+                            selected ? Glass.regular.tint(Theme.dietTint).interactive()
                                      : Glass.regular.interactive(),
                             in: .capsule
                         )
-                        .overlay(
-                            Capsule().stroke(Theme.dietTint.opacity(selected ? 0.9 : 0), lineWidth: 1.5)
-                        )
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(selected ? Theme.dietTint : .primary)
+                .foregroundStyle(selected ? .white : .primary)
             }
         }
     }
@@ -48,17 +45,17 @@ struct AllergenChips: View {
                         allergies = DietPreferences.toggling(allergies, allergen)
                     } label: {
                         Text(allergen)
-                            .font(.caption.weight(.medium))
+                            .font(.caption.weight(on ? .semibold : .medium))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
                             .glassEffect(
-                                on ? Glass.regular.tint(Theme.pillsTint.opacity(0.35)).interactive()
+                                on ? Glass.regular.tint(Theme.pillsTint).interactive()
                                    : Glass.regular.interactive(),
                                 in: .capsule
                             )
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(on ? Theme.pillsTint : .primary)
+                    .foregroundStyle(on ? .white : .primary)
                 }
             }
             TextField("Other allergies (comma separated)", text: $allergies, axis: .vertical)

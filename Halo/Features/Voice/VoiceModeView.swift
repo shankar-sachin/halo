@@ -61,13 +61,25 @@ struct VoiceModeView: View {
                 .blur(radius: 12)
                 .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
 
-            Image(systemName: phase == .result ? resultAction.systemImage
-                  : (phase == .denied ? "mic.slash.fill" : "mic.fill"))
-                .font(.system(size: 56, weight: .semibold))
-                .foregroundStyle(.purple)
-                .frame(width: 150, height: 150)
-                .glassEffect(.regular.tint(.purple.opacity(0.18)), in: .circle)
-                .contentTransition(.symbolEffect(.replace))
+            Group {
+                if phase == .listening || phase == .processing {
+                    HaloWaveform(animating: phase == .listening)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.blue, .purple],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .frame(width: 74, height: 62)
+                } else {
+                    Image(systemName: phase == .denied ? "mic.slash.fill" : resultAction.systemImage)
+                        .font(.system(size: 56, weight: .semibold))
+                        .foregroundStyle(.purple)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+            }
+            .frame(width: 150, height: 150)
+            .glassEffect(.regular.tint(.purple.opacity(0.18)), in: .circle)
         }
         .onAppear { pulse = true }
     }
