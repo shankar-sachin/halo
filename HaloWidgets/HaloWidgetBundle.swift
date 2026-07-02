@@ -6,8 +6,11 @@ struct HaloWidgetBundle: WidgetBundle {
     var body: some Widget {
         CalorieRingWidget()
         UpcomingTodosWidget()
+        HabitStreakWidget()
         WorkoutLiveActivity()
         LogWaterControl()
+        CompleteHabitControl()
+        MarkPillTakenControl()
         TalkToHaloControl()
     }
 }

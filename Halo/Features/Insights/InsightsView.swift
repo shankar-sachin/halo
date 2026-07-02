@@ -10,12 +10,15 @@ struct InsightsView: View {
     @State private var aiSummary: String?
     @State private var reflection: String?
     @State private var loadingReflection = false
+    @State private var digest: String?
+    @State private var loadingDigest = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 patternsCard
                 if let aiSummary { summaryCard(aiSummary) }
+                digestCard
                 reflectionCard
             }
             .padding()
@@ -53,6 +56,33 @@ struct InsightsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Label("Coach", systemImage: "sparkles").font(.headline).foregroundStyle(Theme.moodTint)
                 Text(text).font(.subheadline)
+            }
+        }
+    }
+
+    private var digestCard: some View {
+        GlassCard(tint: Theme.dietTint) {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Monthly digest", systemImage: "calendar").font(.headline).foregroundStyle(Theme.dietTint)
+                if let digest {
+                    Text(digest).font(.subheadline)
+                } else {
+                    Text("See how the last 30 days went — what improved, and what to focus on next month.")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                Button {
+                    Task { await loadDigest() }
+                } label: {
+                    if loadingDigest {
+                        ProgressView()
+                    } else {
+                        Label(digest == nil ? "Review my month" : "Refresh", systemImage: "calendar.badge.clock")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+                .buttonStyle(.glass)
+                .tint(Theme.dietTint)
+                .disabled(loadingDigest)
             }
         }
     }
@@ -95,6 +125,12 @@ struct InsightsView: View {
         loadingReflection = true
         reflection = await CommandActions(context: context).reflectDay()
         loadingReflection = false
+    }
+
+    private func loadDigest() async {
+        loadingDigest = true
+        digest = await CommandActions(context: context).monthlyInsights()
+        loadingDigest = false
     }
 }
 

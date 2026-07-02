@@ -18,6 +18,7 @@ struct HomeView: View {
     @AppStorage(SettingsKey.waterGoalML, store: .shared) private var waterGoal: Int = SettingsDefault.waterGoalML
 
     @State private var showSettings = false
+    @State private var activity: (steps: Int, activeKcal: Int) = (0, 0)
 
     private let columns = [GridItem(.adaptive(minimum: 165), spacing: 12)]
 
@@ -35,6 +36,9 @@ struct HomeView: View {
                         pillCard
                         weightCard
                         sleepCard
+                        if activity.steps > 0 || activity.activeKcal > 0 {
+                            activityCard
+                        }
                     }
                 }
                 .readableWidth()
@@ -63,6 +67,8 @@ struct HomeView: View {
             .sheet(isPresented: $showSettings) {
                 SettingsView()
             }
+            .task { activity = await HealthKitService.shared.todayActivity() }
+            .refreshable { activity = await HealthKitService.shared.todayActivity() }
         }
         .tint(Theme.todoTint)
     }
@@ -148,6 +154,16 @@ struct HomeView: View {
                        caption: latest != nil ? "last night" : "tap to log") {
             SleepView()
         }
+    }
+
+    /// Read-only steps + active energy from Apple Health — there's no Halo tracker behind it,
+    /// so it's a plain card rather than a `NavigationLink`.
+    private var activityCard: some View {
+        cardBody(tint: Theme.workoutsTint, icon: "figure.walk", title: "Activity",
+                 value: activity.steps > 0 ? "\(activity.steps)" : "\(activity.activeKcal)",
+                 caption: activity.steps > 0
+                    ? (activity.activeKcal > 0 ? "steps · \(activity.activeKcal) kcal burned" : "steps today")
+                    : "kcal burned today")
     }
 
     private func format(_ kg: Double) -> String {

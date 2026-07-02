@@ -126,6 +126,7 @@ struct VoiceCommandRouter {
 
     private static func isInsights(_ lower: String) -> Bool {
         let phrases = ["how was my week", "this week", "my week", "weekly", "insights", "insight",
+                       "how was my month", "this month", "my month", "monthly",
                        "how am i trending", "trend", "my progress", "how have i been"]
         return phrases.contains { lower.contains($0) }
     }
@@ -199,7 +200,7 @@ struct VoiceCommandRouter {
         case .briefing: return await actions.dailyBriefing()
         case .delete: return await actions.deleteEntry(payload)
         case .edit: return await actions.editTodo(payload)
-        case .insights: return await actions.weeklyInsights()
+        case .insights: return await actions.insights(payload)
         case .suggest: return await actions.suggestMeal(payload)
         case .extractTodos: return await actions.extractTodosFromNote(payload)
         case .unknown: return "I didn't catch that. Try “Halo, add a to-do…”."

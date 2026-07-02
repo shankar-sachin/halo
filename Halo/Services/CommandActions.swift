@@ -145,20 +145,26 @@ struct CommandActions {
     // MARK: - Mood
 
     func logMood(_ raw: String) async -> String {
-        // Prefer AI journaling (rating + reflective note + supportive reply); fall back to keywords.
-        if let reflection = await HaloIntelligence.reflectMood(raw) {
-            let journal = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            context.insert(MoodEntry(rating: reflection.rating, note: reflection.note, journal: journal))
-            try? context.save()
-            let reply = reflection.reply.isEmpty ? "" : " \(reflection.reply)"
-            return "Logged your mood as \(MoodEntry.label(for: reflection.rating)) \(MoodEntry.emoji(for: reflection.rating)).\(reply)"
-        }
-        guard let rating = MoodEntry.rating(from: raw) else {
+        guard let reflection = await reflectOrFallback(raw) else {
             return "Tell me how you feel — great, good, okay, low, or awful."
         }
-        context.insert(MoodEntry(rating: rating, note: raw.trimmingCharacters(in: .whitespacesAndNewlines)))
+        context.insert(MoodEntry(rating: reflection.rating, note: reflection.note, journal: reflection.journal))
         try? context.save()
-        return "Logged your mood as \(MoodEntry.label(for: rating)) \(MoodEntry.emoji(for: rating))."
+        let reply = reflection.reply.isEmpty ? "" : " \(reflection.reply)"
+        return "Logged your mood as \(MoodEntry.label(for: reflection.rating)) \(MoodEntry.emoji(for: reflection.rating)).\(reply)"
+    }
+
+    /// Reads a mood from free text — AI journaling first (rating + reflective note + supportive
+    /// reply, keeping the user's words as the journal), with keyword rating as the deterministic
+    /// fallback (the words become the note, no reply). Shared by voice and the Mood tab's
+    /// Reflect button; nil when no mood can be read either way.
+    func reflectOrFallback(_ text: String) async -> (rating: Int, note: String, journal: String, reply: String)? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let reflection = await HaloIntelligence.reflectMood(text) {
+            return (reflection.rating, reflection.note, trimmed, reflection.reply)
+        }
+        guard let rating = MoodEntry.rating(from: text) else { return nil }
+        return (rating, trimmed, "", "")
     }
 
     // MARK: - Pills
@@ -248,6 +254,7 @@ struct CommandActions {
         guard !name.isEmpty else { return "What habit would you like to add?" }
         context.insert(Habit(name: name.capitalized))
         try? context.save()
+        reloadWidgets()
         return "Added the habit “\(name.capitalized)”."
     }
 
@@ -264,6 +271,7 @@ struct CommandActions {
         if !habit.isCompleted() {
             habit.toggle()
             try? context.save()
+            reloadWidgets()
         }
         return "Marked “\(habit.name)” done — \(habit.streak) day streak! 🔥"
     }
@@ -476,6 +484,52 @@ struct CommandActions {
         return topPattern.map { "\(base)\n\n📊 \($0.headline)" } ?? base
     }
 
+    /// Routes an insights request to the weekly or monthly summary based on the phrasing.
+    func insights(_ raw: String) async -> String {
+        raw.lowercased().contains("month") ? await monthlyInsights() : await weeklyInsights()
+    }
+
+    // MARK: - Monthly digest
+
+    /// An AI (or templated) summary of the last 30 days across diet, water, and habits.
+    func monthlyInsights() async -> String {
+        let logger = MealLogger(context: context)
+        let month = logger.dailyTotals(days: 30)
+        let avg = month.isEmpty ? 0 : month.reduce(0) { $0 + $1.calories } / month.count
+        let loggedDays = month.filter { $0.calories > 0 }.count
+        let streak = logger.currentStreak()
+        let budget = SettingsDefault.budget
+
+        let habits = (try? context.fetch(FetchDescriptor<Habit>())) ?? []
+        let bestStreak = habits.map(\.streak).max() ?? 0
+
+        // Contrast the two halves of the month so the AI can speak to a trend.
+        let recentHalf = month.suffix(15).filter { $0.calories > 0 }
+        let earlierHalf = month.prefix(15).filter { $0.calories > 0 }
+        let recentAvg = recentHalf.isEmpty ? 0 : recentHalf.reduce(0) { $0 + $1.calories } / recentHalf.count
+        let earlierAvg = earlierHalf.isEmpty ? 0 : earlierHalf.reduce(0) { $0 + $1.calories } / earlierHalf.count
+
+        let facts = """
+        Daily calorie budget: \(budget) kcal.
+        Average calories/day this month: \(avg) kcal across \(loggedDays) logged days.
+        First half of the month averaged \(earlierAvg) kcal/day; second half \(recentAvg) kcal/day.
+        Current meal-logging streak: \(streak) days.
+        Habits tracked: \(habits.count); best habit streak: \(bestStreak) days.
+        """
+
+        let topPattern = CorrelationEngine.correlations(in: context, days: 30).first
+
+        if let insight = await HaloIntelligence.monthlyInsight(facts: facts) {
+            return topPattern.map { "\(insight)\n\n📊 \($0.headline)" } ?? insight
+        }
+        // Deterministic fallback.
+        let vsBudget = avg == 0 ? "no meals logged yet" :
+            (avg <= budget ? "averaging \(avg) kcal/day, under your \(budget) goal — nice work"
+                           : "averaging \(avg) kcal/day, over your \(budget) goal")
+        let base = "This month: \(vsBudget) across \(loggedDays) logged days\(bestStreak > 0 ? ", best habit streak \(bestStreak) days" : "")."
+        return topPattern.map { "\(base)\n\n📊 \($0.headline)" } ?? base
+    }
+
     // MARK: - Meal suggestions
 
     /// Suggests meals that fit the remaining calorie budget (AI, with a static fallback).
@@ -505,14 +559,22 @@ struct CommandActions {
             note = notes[0]
         }
 
-        let tasks = await HaloIntelligence.extractTasks(from: note.body) ?? Self.splitTasks(note.body)
+        let tasks = await extractTodos(from: note)
         guard !tasks.isEmpty else { return "I couldn't find any tasks in that note." }
+        return "Created \(tasks.count) to-do\(tasks.count == 1 ? "" : "s") from your note."
+    }
 
+    /// Extracts tasks from a known note (AI, with a split-based fallback) and creates them,
+    /// returning the created titles. Used directly by the Notes UI, where the note is already open.
+    func extractTodos(from note: Note) async -> [String] {
+        let tasks = await HaloIntelligence.extractTasks(from: note.body) ?? Self.splitTasks(note.body)
+        guard !tasks.isEmpty else { return [] }
         for task in tasks {
             context.insert(TodoItem(title: task))
         }
         try? context.save()
-        return "Created \(tasks.count) to-do\(tasks.count == 1 ? "" : "s") from your note."
+        reloadWidgets()
+        return tasks
     }
 
     /// Deterministic fallback: split a note into candidate tasks on lines, commas, and "and".

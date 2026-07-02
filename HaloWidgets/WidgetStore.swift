@@ -39,6 +39,54 @@ enum WidgetStore {
         return entries.reduce(0) { $0 + $1.calories }
     }
 
+    /// Today's habit progress and the best current streak, for the habit widget.
+    static func habitStreakSummary() -> HabitStreakSummary {
+        let context = ModelContext(container)
+        let habits = (try? context.fetch(FetchDescriptor<Habit>())) ?? []
+        return HabitStreakSummary(
+            doneToday: habits.filter { $0.isCompleted() }.count,
+            total: habits.count,
+            bestStreak: habits.map(\.streak).max() ?? 0
+        )
+    }
+
+    /// Marks the next incomplete habit done (used by the Control Center control, which has no room
+    /// for a picker — same one-tap simplification as `logGlass`). No-op when everything's done.
+    static func completeNextHabit() {
+        let context = ModelContext(container)
+        let descriptor = FetchDescriptor<Habit>(sortBy: [SortDescriptor(\.createdAt)])
+        let habits = (try? context.fetch(descriptor)) ?? []
+        guard let habit = habits.first(where: { !$0.isCompleted() }) else { return }
+        habit.toggle()
+        try? context.save()
+    }
+
+    /// The first scheduled medication not yet logged today, by the same name-matching
+    /// `PillsView.takenToday` uses.
+    static func nextDueMedication() -> (name: String, dose: String)? {
+        let context = ModelContext(container)
+        let schedules = (try? context.fetch(FetchDescriptor<MedicationSchedule>(
+            predicate: #Predicate { $0.active }
+        ))) ?? []
+        guard !schedules.isEmpty else { return nil }
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: .now)
+        let today = (try? context.fetch(FetchDescriptor<PillLog>(
+            predicate: #Predicate { $0.loggedAt >= start }
+        ))) ?? []
+        let takenNames = Set(today.map { $0.name.lowercased() })
+        guard let due = schedules.first(where: { !takenNames.contains($0.name.lowercased()) }) else { return nil }
+        return (due.name, due.dose)
+    }
+
+    /// Logs the next due medication as taken. No-op when nothing is due.
+    static func markMedicationTaken() {
+        guard let due = nextDueMedication() else { return }
+        let context = ModelContext(container)
+        context.insert(PillLog(name: due.name, purpose: due.dose))
+        try? context.save()
+    }
+
     static func upcomingTodos(limit: Int) -> [TodoSummary] {
         let context = ModelContext(container)
         let descriptor = FetchDescriptor<TodoItem>(
@@ -57,4 +105,11 @@ struct TodoSummary: Identifiable, Sendable {
     let id = UUID()
     let title: String
     let dueDate: Date?
+}
+
+/// Lightweight, Sendable snapshot of habit progress for the widget timeline.
+struct HabitStreakSummary: Sendable {
+    let doneToday: Int
+    let total: Int
+    let bestStreak: Int
 }

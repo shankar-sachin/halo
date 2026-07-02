@@ -21,6 +21,7 @@ enum SettingsKey {
     static let sleepGoalHours = "sleepGoalHours"
     static let coachEnabled = "coachEnabled"
     static let coachHour = "coachHour"
+    static let monthlyDigestEnabled = "monthlyDigestEnabled"
     static let dietType = "dietType"
     static let dietLikes = "dietLikes"
     static let dietAvoid = "dietAvoid"
@@ -35,6 +36,7 @@ enum SettingsDefault {
     static let sleepGoalHours = 8
     static let coachEnabled = false
     static let coachHour = 8
+    static let monthlyDigestEnabled = false
 
     /// Registers defaults so non-UI code (App Intents, services) reads sensible values.
     static func register() {
@@ -46,6 +48,7 @@ enum SettingsDefault {
             SettingsKey.sleepGoalHours: sleepGoalHours,
             SettingsKey.coachEnabled: coachEnabled,
             SettingsKey.coachHour: coachHour,
+            SettingsKey.monthlyDigestEnabled: monthlyDigestEnabled,
         ])
     }
 

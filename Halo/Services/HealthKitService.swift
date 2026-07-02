@@ -35,6 +35,7 @@ struct HealthKitService: @unchecked Sendable {
     private var activeEnergyType: HKQuantityType { HKQuantityType(.activeEnergyBurned) }
     private var bodyMassType: HKQuantityType { HKQuantityType(.bodyMass) }
     private var sleepType: HKCategoryType { HKCategoryType(.sleepAnalysis) }
+    private var stepCountType: HKQuantityType { HKQuantityType(.stepCount) }
 
     var isAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
 
@@ -103,6 +104,46 @@ struct HealthKitService: @unchecked Sendable {
                     )
                 }
                 continuation.resume(returning: mapped)
+            }
+            store.execute(query)
+        }
+    }
+
+    // MARK: - Daily activity (steps + active energy, read)
+
+    /// Requests read access to steps and active energy. Read status can't be queried, so callers
+    /// just attempt the query afterward.
+    @discardableResult
+    func requestActivityAuthorization() async -> Bool {
+        guard isAvailable else { return false }
+        do {
+            try await store.requestAuthorization(toShare: [], read: [stepCountType, activeEnergyType])
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// Today's step count and active energy burned, read-only from Apple Health. Returns zeros
+    /// when unavailable or not authorized.
+    func todayActivity() async -> (steps: Int, activeKcal: Int) {
+        guard isAvailable, await requestActivityAuthorization() else { return (0, 0) }
+        let steps = await todaySum(stepCountType, unit: .count())
+        let kcal = await todaySum(activeEnergyType, unit: .kilocalorie())
+        return (Int(steps), Int(kcal))
+    }
+
+    /// Cumulative sum of a quantity type since the start of today (0 on failure/no data).
+    private func todaySum(_ type: HKQuantityType, unit: HKUnit) async -> Double {
+        let start = Calendar.current.startOfDay(for: .now)
+        return await withCheckedContinuation { continuation in
+            let predicate = HKQuery.predicateForSamples(withStart: start, end: .now, options: .strictStartDate)
+            let query = HKStatisticsQuery(
+                quantityType: type,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, stats, _ in
+                continuation.resume(returning: stats?.sumQuantity()?.doubleValue(for: unit) ?? 0)
             }
             store.execute(query)
         }

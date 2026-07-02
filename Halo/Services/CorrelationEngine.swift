@@ -27,6 +27,9 @@ struct CorrelationEngine {
         var waterML = 0
         var habitsDone = 0
         var sleepHours: Double?
+        var dietCalories = 0
+        var pillNamesLogged: Set<String> = []
+        var todosCompleted = 0
         var moodAvg: Double? { moodCount > 0 ? Double(moodSum) / Double(moodCount) : nil }
     }
 
@@ -37,8 +40,13 @@ struct CorrelationEngine {
         water: [WaterEntry],
         habits: [Habit],
         sleeps: [SleepEntry],
+        diets: [DietEntry] = [],
+        pills: [PillLog] = [],
+        schedules: [MedicationSchedule] = [],
+        todos: [TodoItem] = [],
         waterGoal: Int,
         sleepGoal: Int,
+        calorieBudget: Int = SettingsDefault.budget,
         days: Int = 21,
         now: Date = .now,
         calendar: Calendar = .current
@@ -66,6 +74,17 @@ struct CorrelationEngine {
         for habit in habits {
             for date in habit.completionDates where inRange(date) {
                 buckets[day(date), default: Day()].habitsDone += 1
+            }
+        }
+        for d in diets where inRange(d.loggedAt) {
+            buckets[day(d.loggedAt), default: Day()].dietCalories += d.calories
+        }
+        for p in pills where inRange(p.loggedAt) {
+            buckets[day(p.loggedAt), default: Day()].pillNamesLogged.insert(p.name.lowercased())
+        }
+        for t in todos {
+            if let completedAt = t.completedAt, inRange(completedAt) {
+                buckets[day(completedAt), default: Day()].todosCompleted += 1
             }
         }
 
@@ -103,6 +122,23 @@ struct CorrelationEngine {
             }, symbol: "bed.double.fill") { ($0.sleepHours ?? 0) >= Double(sleepGoal) }
         }
 
+        // Days with no meals logged don't count as "under budget" — only logged days contrast.
+        moodContrast({ a, b in
+            "Your mood averages \(fmt(a)) on days you stay under your calorie budget vs \(fmt(b)) when you go over."
+        }, symbol: "fork.knife") { $0.dietCalories > 0 && $0.dietCalories <= calorieBudget }
+
+        // Adherence only means something when there's a schedule to adhere to.
+        if !schedules.isEmpty {
+            let scheduledNames = Set(schedules.map { $0.name.lowercased() })
+            moodContrast({ a, b in
+                "Your mood averages \(fmt(a)) on days you take all your medications vs \(fmt(b)) when you miss a dose."
+            }, symbol: "pills.fill") { scheduledNames.isSubset(of: $0.pillNamesLogged) }
+        }
+
+        moodContrast({ a, b in
+            "Your mood averages \(fmt(a)) on days you complete a to-do vs \(fmt(b)) when you don't."
+        }, symbol: "checkmark.circle.fill") { $0.todosCompleted > 0 }
+
         return found.sorted { $0.delta > $1.delta }
     }
 
@@ -117,9 +153,15 @@ struct CorrelationEngine {
         let water = (try? context.fetch(FetchDescriptor<WaterEntry>())) ?? []
         let habits = (try? context.fetch(FetchDescriptor<Habit>())) ?? []
         let sleeps = (try? context.fetch(FetchDescriptor<SleepEntry>())) ?? []
+        let diets = (try? context.fetch(FetchDescriptor<DietEntry>())) ?? []
+        let pills = (try? context.fetch(FetchDescriptor<PillLog>())) ?? []
+        let schedules = (try? context.fetch(FetchDescriptor<MedicationSchedule>(predicate: #Predicate { $0.active }))) ?? []
+        let todos = (try? context.fetch(FetchDescriptor<TodoItem>())) ?? []
         return correlations(
             moods: moods, workouts: workouts, water: water, habits: habits, sleeps: sleeps,
-            waterGoal: SettingsDefault.waterGoal, sleepGoal: SettingsDefault.sleepGoal, days: days
+            diets: diets, pills: pills, schedules: schedules, todos: todos,
+            waterGoal: SettingsDefault.waterGoal, sleepGoal: SettingsDefault.sleepGoal,
+            calorieBudget: SettingsDefault.budget, days: days
         )
     }
 }

@@ -51,6 +51,57 @@ struct LogMoodIntent: AppIntent {
     }
 }
 
+struct LogWeightIntent: AppIntent {
+    static let title: LocalizedStringResource = "Log Weight"
+    static let description = IntentDescription("Logs your body weight, e.g. 80 kilos.")
+    static let openAppWhenRun = false
+
+    @Parameter(title: "Weight", requestValueDialog: "What's your weight? e.g. 80 kilos")
+    var weight: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        guard !weight.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw $weight.needsValueError("What's your weight?")
+        }
+        return .result(dialog: IntentDialog(stringLiteral: await CommandActions().logWeight(weight)))
+    }
+}
+
+struct LogSleepIntent: AppIntent {
+    static let title: LocalizedStringResource = "Log Sleep"
+    static let description = IntentDescription("Logs how long you slept, e.g. 7 hours.")
+    static let openAppWhenRun = false
+
+    @Parameter(title: "Sleep", requestValueDialog: "How long did you sleep? e.g. 7 hours")
+    var sleep: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        guard !sleep.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw $sleep.needsValueError("How long did you sleep?")
+        }
+        return .result(dialog: IntentDialog(stringLiteral: await CommandActions().logSleep(sleep)))
+    }
+}
+
+struct LogPillIntent: AppIntent {
+    static let title: LocalizedStringResource = "Log a Pill"
+    static let description = IntentDescription("Logs a medication or supplement, e.g. vitamin D.")
+    static let openAppWhenRun = false
+
+    @Parameter(title: "Pill", requestValueDialog: "Which pill did you take?")
+    var pill: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        guard !pill.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw $pill.needsValueError("Which pill did you take?")
+        }
+        return .result(dialog: IntentDialog(stringLiteral: await CommandActions().logPill(pill)))
+    }
+}
+
 struct CompleteHabitIntent: AppIntent {
     static let title: LocalizedStringResource = "Complete a Habit"
     static let description = IntentDescription("Marks one of your habits done for today.")

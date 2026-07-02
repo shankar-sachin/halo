@@ -352,6 +352,85 @@ struct CorrelationEngineTests {
         )
         #expect(result.isEmpty)
     }
+
+    @Test func findsMoodCalorieBudgetPattern() {
+        let ref = cal.date(from: DateComponents(year: 2026, month: 6, day: 24, hour: 9))!
+        var moods: [MoodEntry] = []
+        var diets: [DietEntry] = []
+        // Under-budget days (offsets -1,-3,-5,-7) get high mood; over-budget days get low mood.
+        for offset in [-1, -3, -5, -7] {
+            moods.append(MoodEntry(rating: 5, loggedAt: day(offset, from: ref)))
+            diets.append(DietEntry(foodText: "salad", calories: 1500, loggedAt: day(offset, from: ref)))
+        }
+        for offset in [-2, -4, -6, -8] {
+            moods.append(MoodEntry(rating: 2, loggedAt: day(offset, from: ref)))
+            diets.append(DietEntry(foodText: "feast", calories: 2600, loggedAt: day(offset, from: ref)))
+        }
+        let result = CorrelationEngine.correlations(
+            moods: moods, workouts: [], water: [], habits: [], sleeps: [], diets: diets,
+            waterGoal: 2000, sleepGoal: 8, calorieBudget: 2000, days: 21, now: ref
+        )
+        #expect(result.contains { $0.symbol == "fork.knife" })
+    }
+
+    @Test func findsMoodPillAdherencePattern() {
+        let ref = cal.date(from: DateComponents(year: 2026, month: 6, day: 24, hour: 9))!
+        let schedules = [MedicationSchedule(name: "Vitamin D", timesMinutesOfDay: [540])]
+        var moods: [MoodEntry] = []
+        var pills: [PillLog] = []
+        // Adherent days (offsets -1,-3,-5,-7) get high mood; missed days get low mood.
+        for offset in [-1, -3, -5, -7] {
+            moods.append(MoodEntry(rating: 5, loggedAt: day(offset, from: ref)))
+            pills.append(PillLog(name: "vitamin d", loggedAt: day(offset, from: ref)))
+        }
+        for offset in [-2, -4, -6, -8] {
+            moods.append(MoodEntry(rating: 2, loggedAt: day(offset, from: ref)))
+        }
+        let result = CorrelationEngine.correlations(
+            moods: moods, workouts: [], water: [], habits: [], sleeps: [],
+            pills: pills, schedules: schedules,
+            waterGoal: 2000, sleepGoal: 8, days: 21, now: ref
+        )
+        #expect(result.contains { $0.symbol == "pills.fill" })
+    }
+
+    @Test func skipsPillPatternWithoutSchedules() {
+        let ref = cal.date(from: DateComponents(year: 2026, month: 6, day: 24, hour: 9))!
+        var moods: [MoodEntry] = []
+        var pills: [PillLog] = []
+        for offset in [-1, -3, -5, -7] {
+            moods.append(MoodEntry(rating: 5, loggedAt: day(offset, from: ref)))
+            pills.append(PillLog(name: "vitamin d", loggedAt: day(offset, from: ref)))
+        }
+        for offset in [-2, -4, -6, -8] {
+            moods.append(MoodEntry(rating: 2, loggedAt: day(offset, from: ref)))
+        }
+        // Pills logged but no schedule — there's no target, so no adherence pattern.
+        let result = CorrelationEngine.correlations(
+            moods: moods, workouts: [], water: [], habits: [], sleeps: [], pills: pills,
+            waterGoal: 2000, sleepGoal: 8, days: 21, now: ref
+        )
+        #expect(!result.contains { $0.symbol == "pills.fill" })
+    }
+
+    @Test func findsMoodTodoCompletionPattern() {
+        let ref = cal.date(from: DateComponents(year: 2026, month: 6, day: 24, hour: 9))!
+        var moods: [MoodEntry] = []
+        var todos: [TodoItem] = []
+        // Completion days (offsets -1,-3,-5,-7) get high mood; idle days get low mood.
+        for offset in [-1, -3, -5, -7] {
+            moods.append(MoodEntry(rating: 5, loggedAt: day(offset, from: ref)))
+            todos.append(TodoItem(title: "task", isDone: true, completedAt: day(offset, from: ref)))
+        }
+        for offset in [-2, -4, -6, -8] {
+            moods.append(MoodEntry(rating: 2, loggedAt: day(offset, from: ref)))
+        }
+        let result = CorrelationEngine.correlations(
+            moods: moods, workouts: [], water: [], habits: [], sleeps: [], todos: todos,
+            waterGoal: 2000, sleepGoal: 8, days: 21, now: ref
+        )
+        #expect(result.contains { $0.symbol == "checkmark.circle.fill" })
+    }
 }
 
 struct RecurrenceTests {

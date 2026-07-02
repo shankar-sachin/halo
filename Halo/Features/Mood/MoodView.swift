@@ -7,6 +7,9 @@ struct MoodView: View {
 
     @State private var note = ""
     @State private var journal = ""
+    @State private var reflecting = false
+    @State private var reflection: (rating: Int, note: String, journal: String, reply: String)?
+    @State private var reflectFailed = false
 
     var body: some View {
         ScrollView {
@@ -46,16 +49,63 @@ struct MoodView: View {
                     .lineLimit(1...3)
                     .textFieldStyle(.roundedBorder)
                 DisclosureGroup("Journal") {
-                    TextField("What's on your mind?", text: $journal, axis: .vertical)
-                        .lineLimit(3...8)
-                        .textFieldStyle(.roundedBorder)
-                        .padding(.top, 4)
+                    VStack(spacing: 10) {
+                        TextField("What's on your mind?", text: $journal, axis: .vertical)
+                            .lineLimit(3...8)
+                            .textFieldStyle(.roundedBorder)
+                        if !journal.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Button {
+                                Task { await reflect() }
+                            } label: {
+                                if reflecting {
+                                    ProgressView()
+                                } else {
+                                    Label("Reflect", systemImage: "sparkles")
+                                        .font(.subheadline.weight(.semibold))
+                                }
+                            }
+                            .buttonStyle(.glass)
+                            .tint(Theme.moodTint)
+                            .disabled(reflecting)
+                        }
+                        if reflectFailed {
+                            Text("I couldn't read a mood from that — tap an emoji to log it yourself.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        if let reflection {
+                            reflectionPreview(reflection)
+                        }
+                    }
+                    .padding(.top, 4)
                 }
                 .font(.subheadline)
                 .tint(Theme.moodTint)
             }
             .frame(maxWidth: .infinity)
         }
+    }
+
+    /// The AI's read of the journal entry, shown for confirmation before it's logged.
+    private func reflectionPreview(_ r: (rating: Int, note: String, journal: String, reply: String)) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Text(MoodEntry.emoji(for: r.rating)).font(.title3)
+                Text(MoodEntry.label(for: r.rating)).font(.subheadline.weight(.medium))
+            }
+            if !r.note.isEmpty {
+                Text(r.note).font(.caption).foregroundStyle(.secondary)
+            }
+            if !r.reply.isEmpty {
+                Label { Text(r.reply).font(.subheadline) } icon: {
+                    Image(systemName: "sparkles").foregroundStyle(Theme.moodTint)
+                }
+            }
+            Button("Log this mood") { logReflection() }
+                .buttonStyle(.glass)
+                .tint(Theme.moodTint)
+                .font(.subheadline.weight(.semibold))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var history: some View {
@@ -88,6 +138,24 @@ struct MoodView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func reflect() async {
+        reflecting = true
+        reflectFailed = false
+        reflection = await CommandActions(context: context).reflectOrFallback(journal)
+        reflectFailed = reflection == nil
+        reflecting = false
+    }
+
+    private func logReflection() {
+        guard let r = reflection else { return }
+        withAnimation {
+            context.insert(MoodEntry(rating: r.rating, note: r.note, journal: r.journal))
+            note = ""
+            journal = ""
+            reflection = nil
         }
     }
 

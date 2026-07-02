@@ -9,8 +9,9 @@ struct MealLogger {
 
     /// Logs a meal and returns the resulting entry plus today's running total.
     @discardableResult
-    func log(foodText: String, calories: Int, at date: Date = .now, source: CalorieSource, protein: Int = 0, carbs: Int = 0, fat: Int = 0) async -> (entry: DietEntry, consumedToday: Int) {
-        let entry = DietEntry(foodText: foodText, calories: calories, loggedAt: date, source: source, protein: protein, carbs: carbs, fat: fat)
+    func log(foodText: String, calories: Int, at date: Date = .now, source: CalorieSource, protein: Int = 0, carbs: Int = 0, fat: Int = 0, category: DietCategory? = nil) async -> (entry: DietEntry, consumedToday: Int) {
+        let entry = DietEntry(foodText: foodText, calories: calories, loggedAt: date, source: source, protein: protein, carbs: carbs, fat: fat,
+                              category: category ?? DietCategory.inferred(from: foodText))
         context.insert(entry)
         try? context.save()
 

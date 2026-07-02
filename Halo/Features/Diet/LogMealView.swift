@@ -13,6 +13,7 @@ struct LogMealView: View {
     @State private var loggedAt: Date = .now
     @State private var isEstimating = false
     @State private var estimateSource: CalorieSource?
+    @State private var category: DietCategory = .food
 
     var body: some View {
         NavigationStack {
@@ -20,7 +21,16 @@ struct LogMealView: View {
                 Section("What did you eat?") {
                     TextField("e.g. one cup of greek yogurt", text: $foodText, axis: .vertical)
                         .lineLimit(1...3)
-                        .onChange(of: foodText) { estimateSource = nil }
+                        .onChange(of: foodText) {
+                            estimateSource = nil
+                            category = DietCategory.inferred(from: foodText)
+                        }
+                    Picker("Type", selection: $category) {
+                        ForEach(DietCategory.allCases) { c in
+                            Text(c.label).tag(c)
+                        }
+                    }
+                    .pickerStyle(.segmented)
                 }
                 Section("Calories") {
                     HStack {
@@ -75,6 +85,7 @@ struct LogMealView: View {
         calories = entry.calories
         loggedAt = entry.loggedAt
         estimateSource = entry.source
+        category = entry.category
     }
 
     private func estimate() async {
@@ -99,13 +110,15 @@ struct LogMealView: View {
             entry.calories = max(calories, 0)
             entry.loggedAt = loggedAt
             entry.source = source
+            entry.category = category
             try? context.save()
         } else {
             await MealLogger(context: context).log(
                 foodText: trimmed,
                 calories: max(calories, 0),
                 at: loggedAt,
-                source: source
+                source: source,
+                category: category
             )
         }
         dismiss()

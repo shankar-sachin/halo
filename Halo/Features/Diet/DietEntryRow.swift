@@ -6,7 +6,7 @@ struct DietEntryRow: View {
     var body: some View {
         GlassCard(tint: Theme.dietTint) {
             HStack(spacing: 14) {
-                Image(systemName: "fork.knife.circle.fill")
+                Image(systemName: entry.category.symbol)
                     .font(.title)
                     .foregroundStyle(Theme.dietTint)
 

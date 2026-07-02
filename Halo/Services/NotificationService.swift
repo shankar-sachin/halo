@@ -85,6 +85,28 @@ struct NotificationService: Sendable {
         cancelReminder(id: Self.coachReminderID)
     }
 
+    /// Stable identifier for the first-of-the-month digest reminder.
+    static let monthlyDigestID = "halo-monthly-digest"
+
+    /// Turns the monthly digest reminder on (fires the 1st of each month at 9 AM) or off.
+    func scheduleMonthlyDigest() async {
+        guard await requestAuthorizationIfNeeded() else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Your month with Halo"
+        content.body = "Open Insights to review last month — what improved, and what to focus on next."
+        content.sound = .default
+
+        var components = DateComponents()
+        components.day = 1
+        components.hour = 9
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        try? await center.add(UNNotificationRequest(identifier: Self.monthlyDigestID, content: content, trigger: trigger))
+    }
+
+    func cancelMonthlyDigest() {
+        cancelReminder(id: Self.monthlyDigestID)
+    }
+
     /// Schedules a daily-repeating reminder at the given hour/minute (used for medication schedules
     /// and the proactive coach).
     func scheduleDailyReminder(id: String, title: String, body: String, hour: Int, minute: Int) async {

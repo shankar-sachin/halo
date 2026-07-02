@@ -68,6 +68,7 @@ struct AssistantSettingsView: View {
 struct CoachSettingsView: View {
     @AppStorage(SettingsKey.coachEnabled, store: .shared) private var coachEnabled: Bool = SettingsDefault.coachEnabled
     @AppStorage(SettingsKey.coachHour, store: .shared) private var coachHour: Int = SettingsDefault.coachHour
+    @AppStorage(SettingsKey.monthlyDigestEnabled, store: .shared) private var monthlyDigestEnabled: Bool = SettingsDefault.monthlyDigestEnabled
 
     var body: some View {
         Form {
@@ -85,6 +86,11 @@ struct CoachSettingsView: View {
             } footer: {
                 Text("A gentle daily nudge to check in on your day across every tracker.")
             }
+            Section {
+                Toggle("Monthly digest", isOn: $monthlyDigestEnabled)
+            } footer: {
+                Text("A reminder on the first of each month to review how the last 30 days went, in Home → Insights.")
+            }
         }
         .scrollContentBackground(.hidden)
         .background(Theme.backdrop(Theme.moodTint))
@@ -93,6 +99,17 @@ struct CoachSettingsView: View {
         .tint(Theme.moodTint)
         .onChange(of: coachEnabled) { _, on in updateCoach(enabled: on, hour: coachHour) }
         .onChange(of: coachHour) { _, hour in if coachEnabled { updateCoach(enabled: true, hour: hour) } }
+        .onChange(of: monthlyDigestEnabled) { _, on in updateDigest(enabled: on) }
+    }
+
+    private func updateDigest(enabled: Bool) {
+        Task {
+            if enabled {
+                await NotificationService.shared.scheduleMonthlyDigest()
+            } else {
+                NotificationService.shared.cancelMonthlyDigest()
+            }
+        }
     }
 
     private func updateCoach(enabled: Bool, hour: Int) {

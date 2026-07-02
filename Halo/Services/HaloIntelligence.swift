@@ -177,6 +177,19 @@ enum HaloIntelligence {
     }
 
     @MainActor
+    static func monthlyInsight(facts: String) async -> String? {
+        await generateText(
+            instructions: """
+            You are a supportive health coach. Given a person's last-30-day stats, summarize the \
+            month in two or three short sentences — call out one thing that improved and one thing \
+            to focus on next month. Be encouraging and specific. Do not invent numbers beyond those \
+            given.
+            """,
+            prompt: facts
+        )
+    }
+
+    @MainActor
     static func polishBriefing(facts: String) async -> String? {
         await generateText(
             instructions: """
